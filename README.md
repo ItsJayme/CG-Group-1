@@ -7,3 +7,8 @@ j.s.freeke@student.tudelft.nl<br />
 Julian in 't Veld - 4539184 <br />
 J.J.W.intVeld@student.tudelft.nl<br />
 photo pending <br />
+
+Max de Munnik - 4572653 < br />
+M.J.deMunnik@student.tudelft.nl<br />
+photo pending<br />
+
