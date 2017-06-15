@@ -12,3 +12,6 @@ Max de Munnik - 4572653 <br />
 M.J.deMunnik@student.tudelft.nl<br />
 photo pending<br />
 
+Sunil Janki - 9387546<br />
+s.a.janki@student.tudelft.nl<br />
+photo missing<br />
