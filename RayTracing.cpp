@@ -41,6 +41,7 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 
 
 
+
 void yourDebugDraw()
 {
 	//draw open gl debug stuff

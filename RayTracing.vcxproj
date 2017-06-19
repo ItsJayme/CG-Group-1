@@ -14,6 +14,7 @@
     <ProjectGuid>{4FB94212-DD6F-4A84-AEB1-E5728A5369DA}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
     <RootNamespace>RayTracing</RootNamespace>
+    <WindowsTargetPlatformVersion>10.0.15063.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
@@ -52,12 +53,12 @@
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_CONSOLE;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <SDLCheck>true</SDLCheck>
-      <AdditionalIncludeDirectories>$(SolutionDir)/freeglut/include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>D:\CG\RayTracing\freeglut\include;$(SolutionDir)/freeglut/include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>$(SolutionDir)/freeglut/lib</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>D:\CG\RayTracing\freeglut\lib;$(SolutionDir)/freeglut/lib</AdditionalLibraryDirectories>
       <AdditionalDependencies>opengl32.lib;freeglut.lib;kernel32.lib;user32.lib;gdi32.lib;winspool.lib;comdlg32.lib;advapi32.lib;shell32.lib;ole32.lib;oleaut32.lib;uuid.lib;odbc32.lib;odbccp32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
