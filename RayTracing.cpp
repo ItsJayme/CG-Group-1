@@ -5,6 +5,7 @@
 #endif
 #include <GL/glut.h>
 #include "raytracing.h"
+#include <iostream>
 
 
 //temporary variables
@@ -27,7 +28,7 @@ void init()
 	//PLEASE ADAPT THE LINE BELOW TO THE FULL PATH OF THE dodgeColorTest.obj
 	//model, e.g., "C:/temp/myData/GraphicsIsFun/dodgeColorTest.obj", 
 	//otherwise the application will not load properly
-    MyMesh.loadMesh("dodgeColorTest.obj", true);
+   
 	MyMesh.computeVertexNormals();
 
 	//one first move: initialize the first light source
@@ -35,7 +36,7 @@ void init()
 	//here, we set it to the current location of the camera
 	MyLightPositions.push_back(MyCameraPosition);
 
-
+	MyMesh.loadMesh("cube.obj", true);
 	Kd.resize(MyMesh.vertices.size(), Vec3Df(0.5, 0.5, 0.5));
 	Ks.resize(MyMesh.vertices.size(), Vec3Df(0.5, 0.5, 0.5));
 	Shininess.resize(MyMesh.vertices.size(), 3);
@@ -104,15 +105,16 @@ bool rayTriangleIntersect(
 
 }
 
-bool intersectPlane(const Vec3Df &normal, const Vec3Df &planeCenter, const Vec3Df &direction, const Vec3Df &origin, float &distance)
+bool intersectPlane(const Vec3Df &normal, const Vec3Df &direction, const Vec3Df &origin, float &distance, Vec3Df &planepos)
 {
 	// t = (dist - dot(orig, normal) / dot(direction, normal)
 	float t;
 	float denominator = (distance - Vec3Df::dotProduct(origin, normal));
-	if (denominator > 0) {
-		Vec3Df p0l0 = planeCenter - origin;
-		float numerator = Vec3Df::dotProduct(p0l0, normal);
-		t = numerator / denominator;
+	if (Vec3Df::dotProduct(direction,normal) != 0) {
+		float numerator = Vec3Df::dotProduct(direction, normal);
+		t = denominator / numerator;
+		planepos = origin + t * direction;
+		std::cout << planepos[0] << " " << planepos[1] << " " << planepos[2] << std::endl;
 		if (t >= 0) {
 			return true;
 		}
@@ -130,10 +132,9 @@ Vec3Df getTriangleCenter(const Vec3Df &edge1, const Vec3Df &edge2, const Vec3Df 
 //return the color of your pixel.
 Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 {
-	printf("test");
 	for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
 		Triangle currenttriangle = MyMesh.triangles[i];
-			
+
 		Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
 		Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
 		Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
@@ -145,14 +146,12 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 
 		float distance = Vec3Df::dotProduct(normal, v0);
 		Vec3Df direction = dest - origin;
-
-		Vec3Df centerOfTriangle = getTriangleCenter(v0, v1, v2);
-
-		if (intersectPlane(normal,centerOfTriangle,direction,origin,distance)) {
-			printf("hit plane");
+		Vec3Df planepos;
+		if (intersectPlane(normal, direction, origin, distance, planepos)) {
+			printf("hit ");
 		}
 		else {
-			printf("miss");
+			printf("miss ");
 		}
 	}
 	return Vec3Df(dest[0], dest[1], dest[2]);
@@ -192,7 +191,6 @@ void yourDebugDraw()
 	glVertex3fv(MyLightPositions[0].pointer());
 	glEnd();
 	glPopAttrib();
-	
 	//draw whatever else you want...
 	////glutSolidSphere(1,10,10);
 	////allows you to draw a sphere at the origin.
@@ -227,7 +225,7 @@ void yourKeyboardFunc(char t, int x, int y, const Vec3Df & rayOrigin, const Vec3
 	//try it: Press a key, move the camera, see the ray that was launched as a line.
 	testRayOrigin=rayOrigin;	
 	testRayDestination=rayDestination;
-	
+	performRayTracing(testRayOrigin, testRayDestination);
 	// do here, whatever you want with the keyboard input t.
 	
 	//...
