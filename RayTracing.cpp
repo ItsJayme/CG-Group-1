@@ -5,6 +5,7 @@
 #endif
 #include <GL/glut.h>
 #include "raytracing.h"
+#include <iostream>
 
 
 //temporary variables
@@ -12,11 +13,16 @@
 //a simple debug drawing. A ray 
 Vec3Df testRayOrigin;
 Vec3Df testRayDestination;
+std::vector<Vec3Df> Kd;//diffuse coefficient per vertex
+std::vector<Vec3Df> Ks;//specularity coefficient per vertex
+std::vector<float> Shininess;//exponent for phong and blinn-phong specularities
 
 
 //use this function for any preprocessing of the mesh.
 void init()
 {
+
+
 	//load the mesh file
 	//please realize that not all OBJ files will successfully load.
 	//Nonetheless, if they come from Blender, they should, if they 
@@ -24,32 +30,112 @@ void init()
 	//PLEASE ADAPT THE LINE BELOW TO THE FULL PATH OF THE dodgeColorTest.obj
 	//model, e.g., "C:/temp/myData/GraphicsIsFun/dodgeColorTest.obj", 
 	//otherwise the application will not load properly
-    MyMesh.loadMesh("dodgeColorTest.obj", true);
+   
 	MyMesh.computeVertexNormals();
 
 	//one first move: initialize the first light source
 	//at least ONE light source has to be in the scene!!!
 	//here, we set it to the current location of the camera
 	MyLightPositions.push_back(MyCameraPosition);
+
+	MyMesh.loadMesh("cube.obj", true);
+	Kd.resize(MyMesh.vertices.size(), Vec3Df(0.5, 0.5, 0.5));
+	Ks.resize(MyMesh.vertices.size(), Vec3Df(0.5, 0.5, 0.5));
+	Shininess.resize(MyMesh.vertices.size(), 3);
+}
+
+
+
+
+
+bool intersectPlane(const Vec3Df &normal, const Vec3Df &direction, const Vec3Df &origin, float &distance, float &t, Vec3Df &planepos)
+{
+	// t = (dist - dot(orig, normal) / dot(direction, normal)
+	float denominator = (distance - Vec3Df::dotProduct(origin, normal));
+	if (Vec3Df::dotProduct(direction,normal) != 0) {
+		float numerator = Vec3Df::dotProduct(direction, normal);
+		t = denominator / numerator;
+		planepos = origin + t * direction;
+		if (t >= 0) {
+			return true;
+		}
+	}
+
+	return false;
+
+}
+
+bool rayTriangleIntersect(Vec3Df &planepos, Triangle &triangle, Vec3Df &trianglepos, Vec3Df &normal) {
+
+	Vec3Df bary;
+	Vec3Df a = MyMesh.vertices[triangle.v[0]].p;
+	Vec3Df b = MyMesh.vertices[triangle.v[1]].p;
+	Vec3Df c = MyMesh.vertices[triangle.v[2]].p;
+
+	float areaABC = Vec3Df::dotProduct(normal, Vec3Df::crossProduct((b - a), (c - a)));
+	float areaPBC = Vec3Df::dotProduct(normal, Vec3Df::crossProduct((b - planepos), (c - planepos)));
+	float areaPCA = Vec3Df::dotProduct(normal, Vec3Df::crossProduct((c - planepos), (a - planepos)));
+
+	bary[0] = areaPBC / areaABC;
+	bary[1] = areaPCA / areaABC;
+	bary[2] = 1 - bary[0] - bary[1];
+
+	if ((bary[0] < 0) || (bary[0] > 1)) {
+		return false;
+	}
+	if ((bary[1] < 0) || (bary[1] > 1)) {
+		return false;
+	}
+	if (bary[0] + bary[1] > 1) {
+		return false;
+	}
+	else {
+		return true;
+	}
+}
+
+Vec3Df getTriangleCenter(const Vec3Df &edge1, const Vec3Df &edge2, const Vec3Df &edge3) {
+	Vec3Df centerOfTriangle = (edge1 + edge2 + edge3 / 3);
+	return centerOfTriangle;
 }
 
 //return the color of your pixel.
 Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 {
-	return Vec3Df(dest[0],dest[1],dest[2]);
+	for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
+		Triangle currenttriangle = MyMesh.triangles[i];
+
+		Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
+		Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
+		Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
+
+		Vec3Df edge12 = v0 - v1;
+		Vec3Df edge13 = v0 - v2;
+		Vec3Df normal = Vec3Df::crossProduct(edge12, edge13);
+		normal.normalize();
+
+		float distance = Vec3Df::dotProduct(normal, v0);
+		Vec3Df direction = dest - origin;
+		Vec3Df planepos;
+		float t;
+
+		if (intersectPlane(normal, direction, origin, distance, t, planepos)) {
+			Vec3Df trianglepos;
+			if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) {
+				printf("hit \n");
+			}
+			
+		}
+	}
+	return Vec3Df(dest[0], dest[1], dest[2]);
 }
-
-
-
 
 void yourDebugDraw()
 {
 	//draw open gl debug stuff
 	//this function is called every frame
-
 	//let's draw the mesh
 	MyMesh.draw();
-	
 	//let's draw the lights in the scene as points
 	glPushAttrib(GL_ALL_ATTRIB_BITS); //store all GL attributes
 	glDisable(GL_LIGHTING);
@@ -64,8 +150,6 @@ void yourDebugDraw()
 	//e.g., even though inside the two calls, we set
 	//the color to white, it will be reset to the previous 
 	//state after the pop.
-
-
 	//as an example: we draw the test ray, which is set by the keyboard function
 	glPushAttrib(GL_ALL_ATTRIB_BITS);
 	glDisable(GL_LIGHTING);
@@ -80,7 +164,6 @@ void yourDebugDraw()
 	glVertex3fv(MyLightPositions[0].pointer());
 	glEnd();
 	glPopAttrib();
-	
 	//draw whatever else you want...
 	////glutSolidSphere(1,10,10);
 	////allows you to draw a sphere at the origin.
@@ -115,11 +198,35 @@ void yourKeyboardFunc(char t, int x, int y, const Vec3Df & rayOrigin, const Vec3
 	//try it: Press a key, move the camera, see the ray that was launched as a line.
 	testRayOrigin=rayOrigin;	
 	testRayDestination=rayDestination;
-	
+	performRayTracing(testRayOrigin, testRayDestination);
 	// do here, whatever you want with the keyboard input t.
 	
 	//...
 	
-	
 	std::cout<<t<<" pressed! The mouse was in location "<<x<<","<<y<<"!"<<std::endl;	
+}
+
+Vec3Df phongDiffuse(const Vec3Df & vertexPos, Vec3Df & normal, const Vec3Df & lightPos, unsigned int index)
+{
+	Vec3Df l = lightPos - vertexPos;
+	return Kd.at(index) * Vec3Df::dotProduct(normal, l);
+}
+
+Vec3Df phongSpecular(const Vec3Df & vertexPos, Vec3Df & normal, const Vec3Df & lightPos, const Vec3Df & cameraPos, unsigned int index)
+{
+	Vec3Df spec;
+	if (normal.dotProduct(normal, cameraPos) / (normal.getLength() * normal.getLength()) > 0) {
+		Vec3Df view = cameraPos - vertexPos;
+		Vec3Df incidence = vertexPos - lightPos;
+		Vec3Df reflection = incidence - (2 * (Vec3Df::dotProduct(incidence, normal)) * normal);
+		spec = Ks[index] * (std::pow(Vec3Df::dotProduct(view, reflection), Shininess.at(index)));
+	}
+	return spec;
+}
+
+Vec3Df phongModel(const Vec3Df & vertexPos, Vec3Df & normal, const Vec3Df & lightPos, const Vec3Df & cameraPos, unsigned int index)
+{
+	Vec3Df diff = phongDiffuse(vertexPos, normal, lightPos,index);
+	Vec3Df spec = phongSpecular(vertexPos, normal, lightPos, cameraPos, index);
+	return diff + spec;
 }
