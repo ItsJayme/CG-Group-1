@@ -21,6 +21,8 @@ std::vector<float> Shininess;//exponent for phong and blinn-phong specularities
 //use this function for any preprocessing of the mesh.
 void init()
 {
+
+
 	//load the mesh file
 	//please realize that not all OBJ files will successfully load.
 	//Nonetheless, if they come from Blender, they should, if they 
@@ -43,78 +45,17 @@ void init()
 }
 
 
-//float D = N.x * v0.x + N.y * v0.y + N.z * v0.z; 
 
-bool rayTriangleIntersect(
-	const Vec3Df &orig, const Vec3Df &dir,
-	const Vec3Df &edge1, const Vec3Df &edge2, const Vec3Df &edge3)
-{
-	// compute plane's normal
-	Vec3Df line12 = edge2 - edge1;
-	Vec3Df line31 = edge3 - edge1;
-	// normalising is not neccesary
-	Vec3Df N = Vec3Df::crossProduct(line12, line31);
-	float area = N.getLength();
 
-	// find P
 
-	// find if ray and 
-	float dotproductNandRay = Vec3Df::dotProduct(N, dir);
-
-	if (fabs(dotproductNandRay) < FLT_EPSILON) // epsilon is 1E-5 (0.00001)
-	{
-		return false;
-	}
-	float d = Vec3Df::dotProduct(N,edge1);
-
-	float t = (Vec3Df::dotProduct(N, orig) + d) / dotproductNandRay;
-
-	if (t < 0) { // check whether or not the triangle is behind the ray
-		return false;
-	}
-
-	Vec3Df P = orig + t * dir;
-
-	
-	// this whole calculation checks whether or not the ray lands inside the triangle from the right side
-	Vec3Df diffedge21 = edge2 - edge1;
-	Vec3Df vp0 = P - edge1;
-	Vec3Df C = Vec3Df::crossProduct(diffedge21, vp0);
-	if (Vec3Df::dotProduct(N, C) < 0) {
-		return false;
-	}// P is on the right side 
-
-												   // edge 1
-	Vec3Df diffedge32 = edge3 - edge2;
-	Vec3Df vp1 = P - edge2;
-	C = Vec3Df::crossProduct(diffedge32,vp1);
-	if (Vec3Df::dotProduct(N,C) < 0) { 
-		return false; 
-	}// P is on the right side 
-
-															   // edge 2
-	Vec3Df diffedge13 = edge1 - edge3;
-	Vec3Df vp2 = P - edge3;
-	C = Vec3Df::crossProduct(diffedge13, vp2);
-	if (Vec3Df::dotProduct(N, C) < 0) {
-		return false;
-	}// P is on the right side;
-
-	printf("hit a triangle");
-	return true;
-
-}
-
-bool intersectPlane(const Vec3Df &normal, const Vec3Df &direction, const Vec3Df &origin, float &distance, Vec3Df &planepos)
+bool intersectPlane(const Vec3Df &normal, const Vec3Df &direction, const Vec3Df &origin, float &distance, float &t, Vec3Df &planepos)
 {
 	// t = (dist - dot(orig, normal) / dot(direction, normal)
-	float t;
 	float denominator = (distance - Vec3Df::dotProduct(origin, normal));
 	if (Vec3Df::dotProduct(direction,normal) != 0) {
 		float numerator = Vec3Df::dotProduct(direction, normal);
 		t = denominator / numerator;
 		planepos = origin + t * direction;
-		std::cout << planepos[0] << " " << planepos[1] << " " << planepos[2] << std::endl;
 		if (t >= 0) {
 			return true;
 		}
@@ -122,6 +63,35 @@ bool intersectPlane(const Vec3Df &normal, const Vec3Df &direction, const Vec3Df 
 
 	return false;
 
+}
+
+bool rayTriangleIntersect(Vec3Df &planepos, Triangle &triangle, Vec3Df &trianglepos, Vec3Df &normal) {
+
+	Vec3Df bary;
+	Vec3Df a = MyMesh.vertices[triangle.v[0]].p;
+	Vec3Df b = MyMesh.vertices[triangle.v[1]].p;
+	Vec3Df c = MyMesh.vertices[triangle.v[2]].p;
+
+	float areaABC = Vec3Df::dotProduct(normal, Vec3Df::crossProduct((b - a), (c - a)));
+	float areaPBC = Vec3Df::dotProduct(normal, Vec3Df::crossProduct((b - planepos), (c - planepos)));
+	float areaPCA = Vec3Df::dotProduct(normal, Vec3Df::crossProduct((c - planepos), (a - planepos)));
+
+	bary[0] = areaPBC / areaABC;
+	bary[1] = areaPCA / areaABC;
+	bary[2] = 1 - bary[0] - bary[1];
+
+	if ((bary[0] < 0) || (bary[0] > 1)) {
+		return false;
+	}
+	if ((bary[1] < 0) || (bary[1] > 1)) {
+		return false;
+	}
+	if (bary[0] + bary[1] > 1) {
+		return false;
+	}
+	else {
+		return true;
+	}
 }
 
 Vec3Df getTriangleCenter(const Vec3Df &edge1, const Vec3Df &edge2, const Vec3Df &edge3) {
@@ -147,11 +117,14 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 		float distance = Vec3Df::dotProduct(normal, v0);
 		Vec3Df direction = dest - origin;
 		Vec3Df planepos;
-		if (intersectPlane(normal, direction, origin, distance, planepos)) {
-			printf("hit ");
-		}
-		else {
-			printf("miss ");
+		float t;
+
+		if (intersectPlane(normal, direction, origin, distance, t, planepos)) {
+			Vec3Df trianglepos;
+			if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) {
+				printf("hit \n");
+			}
+			
 		}
 	}
 	return Vec3Df(dest[0], dest[1], dest[2]);
