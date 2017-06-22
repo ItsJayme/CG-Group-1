@@ -12,6 +12,9 @@
 //a simple debug drawing. A ray 
 Vec3Df testRayOrigin;
 Vec3Df testRayDestination;
+std::vector<Vec3Df> Kd;//diffuse coefficient per vertex
+std::vector<Vec3Df> Ks;//specularity coefficient per vertex
+std::vector<float> Shininess;//exponent for phong and blinn-phong specularities
 
 
 //use this function for any preprocessing of the mesh.
@@ -31,6 +34,11 @@ void init()
 	//at least ONE light source has to be in the scene!!!
 	//here, we set it to the current location of the camera
 	MyLightPositions.push_back(MyCameraPosition);
+
+
+	Kd.resize(MyMesh.vertices.size(), Vec3Df(0.5, 0.5, 0.5));
+	Ks.resize(MyMesh.vertices.size(), Vec3Df(0.5, 0.5, 0.5));
+	Shininess.resize(MyMesh.vertices.size(), 3);
 }
 
 
@@ -96,49 +104,66 @@ bool rayTriangleIntersect(
 
 }
 
-bool rayPlaneIntersect(Vec3Df normal, Vec3Df planecenter, Vec3Df rayOr, Vec3Df rayDest) {
-	float denom = Vec3Df::dotProduct(normal, rayDest);
-	if (abs(denom) > FLT_EPSILON) // your favorite epsilon
-	{
-		float t = Vec3Df::dotProduct((planecenter - rayOr), normal)	 / denom;
-		return(t >= 0); // you might want to allow an epsilon here too
+bool intersectPlane(const Vec3Df &normal, const Vec3Df &planeCenter, const Vec3Df &direction, const Vec3Df &origin, float &distance)
+{
+	// t = (dist - dot(orig, normal) / dot(direction, normal)
+	float t;
+	float denominator = (distance - Vec3Df::dotProduct(origin, normal));
+	if (denominator > 0) {
+		Vec3Df p0l0 = planeCenter - origin;
+		float numerator = Vec3Df::dotProduct(p0l0, normal);
+		t = numerator / denominator;
+		if (t >= 0) {
+			return true;
+		}
 	}
+
 	return false;
+
+}
+
+Vec3Df getTriangleCenter(const Vec3Df &edge1, const Vec3Df &edge2, const Vec3Df &edge3) {
+	Vec3Df centerOfTriangle = (edge1 + edge2 + edge3 / 3);
+	return centerOfTriangle;
 }
 
 //return the color of your pixel.
 Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 {
-
+	printf("test");
 	for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
 		Triangle currenttriangle = MyMesh.triangles[i];
-	if (
-		rayTriangleIntersect(origin, dest, MyMesh.vertices[currenttriangle.v[0]].p,
-			MyMesh.vertices[currenttriangle.v[1]].p, MyMesh.vertices[currenttriangle.v[2]].p))
-	 {
-				Vec3Df edge12 = MyMesh.vertices[currenttriangle.v[0]].p - MyMesh.vertices[currenttriangle.v[1]].p;
-				Vec3Df edge13 = MyMesh.vertices[currenttriangle.v[0]].p - MyMesh.vertices[currenttriangle.v[2]].p;
-				edge12.normalize();
-				edge13.normalize();
-				Vec3Df normal = Vec3Df::crossProduct(edge12, edge13);
-				normal.normalize();
+			
+		Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
+		Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
+		Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
 
+		Vec3Df edge12 = v0 - v1;
+		Vec3Df edge13 = v0 - v2;
+		Vec3Df normal = Vec3Df::crossProduct(edge12, edge13);
+		normal.normalize();
 
+		float distance = Vec3Df::dotProduct(normal, v0);
+		Vec3Df direction = dest - origin;
+
+		Vec3Df centerOfTriangle = getTriangleCenter(v0, v1, v2);
+
+		if (intersectPlane(normal,centerOfTriangle,direction,origin,distance)) {
+			printf("hit plane");
 		}
-		
+		else {
+			printf("miss");
+		}
 	}
 	return Vec3Df(dest[0], dest[1], dest[2]);
 }
-
 
 void yourDebugDraw()
 {
 	//draw open gl debug stuff
 	//this function is called every frame
-
 	//let's draw the mesh
 	MyMesh.draw();
-	
 	//let's draw the lights in the scene as points
 	glPushAttrib(GL_ALL_ATTRIB_BITS); //store all GL attributes
 	glDisable(GL_LIGHTING);
@@ -153,8 +178,6 @@ void yourDebugDraw()
 	//e.g., even though inside the two calls, we set
 	//the color to white, it will be reset to the previous 
 	//state after the pop.
-
-
 	//as an example: we draw the test ray, which is set by the keyboard function
 	glPushAttrib(GL_ALL_ATTRIB_BITS);
 	glDisable(GL_LIGHTING);
@@ -209,6 +232,30 @@ void yourKeyboardFunc(char t, int x, int y, const Vec3Df & rayOrigin, const Vec3
 	
 	//...
 	
-	
 	std::cout<<t<<" pressed! The mouse was in location "<<x<<","<<y<<"!"<<std::endl;	
+}
+
+Vec3Df phongDiffuse(const Vec3Df & vertexPos, Vec3Df & normal, const Vec3Df & lightPos, unsigned int index)
+{
+	Vec3Df l = lightPos - vertexPos;
+	return Kd.at(index) * Vec3Df::dotProduct(normal, l);
+}
+
+Vec3Df phongSpecular(const Vec3Df & vertexPos, Vec3Df & normal, const Vec3Df & lightPos, const Vec3Df & cameraPos, unsigned int index)
+{
+	Vec3Df spec;
+	if (normal.dotProduct(normal, cameraPos) / (normal.getLength() * normal.getLength()) > 0) {
+		Vec3Df view = cameraPos - vertexPos;
+		Vec3Df incidence = vertexPos - lightPos;
+		Vec3Df reflection = incidence - (2 * (Vec3Df::dotProduct(incidence, normal)) * normal);
+		spec = Ks[index] * (std::pow(Vec3Df::dotProduct(view, reflection), Shininess.at(index)));
+	}
+	return spec;
+}
+
+Vec3Df phongModel(const Vec3Df & vertexPos, Vec3Df & normal, const Vec3Df & lightPos, const Vec3Df & cameraPos, unsigned int index)
+{
+	Vec3Df diff = phongDiffuse(vertexPos, normal, lightPos,index);
+	Vec3Df spec = phongSpecular(vertexPos, normal, lightPos, cameraPos, index);
+	return diff + spec;
 }
