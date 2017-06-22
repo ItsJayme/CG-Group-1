@@ -33,13 +33,102 @@ void init()
 	MyLightPositions.push_back(MyCameraPosition);
 }
 
+
+//float D = N.x * v0.x + N.y * v0.y + N.z * v0.z; 
+
+bool rayTriangleIntersect(
+	const Vec3Df &orig, const Vec3Df &dir,
+	const Vec3Df &edge1, const Vec3Df &edge2, const Vec3Df &edge3)
+{
+	// compute plane's normal
+	Vec3Df line12 = edge2 - edge1;
+	Vec3Df line31 = edge3 - edge1;
+	// normalising is not neccesary
+	Vec3Df N = Vec3Df::crossProduct(line12, line31);
+	float area = N.getLength();
+
+	// find P
+
+	// find if ray and 
+	float dotproductNandRay = Vec3Df::dotProduct(N, dir);
+
+	if (fabs(dotproductNandRay) < FLT_EPSILON) // epsilon is 1E-5 (0.00001)
+	{
+		return false;
+	}
+	float d = Vec3Df::dotProduct(N,edge1);
+
+	float t = (Vec3Df::dotProduct(N, orig) + d) / dotproductNandRay;
+
+	if (t < 0) { // check whether or not the triangle is behind the ray
+		return false;
+	}
+
+	Vec3Df P = orig + t * dir;
+
+	
+	// this whole calculation checks whether or not the ray lands inside the triangle from the right side
+	Vec3Df diffedge21 = edge2 - edge1;
+	Vec3Df vp0 = P - edge1;
+	Vec3Df C = Vec3Df::crossProduct(diffedge21, vp0);
+	if (Vec3Df::dotProduct(N, C) < 0) {
+		return false;
+	}// P is on the right side 
+
+												   // edge 1
+	Vec3Df diffedge32 = edge3 - edge2;
+	Vec3Df vp1 = P - edge2;
+	C = Vec3Df::crossProduct(diffedge32,vp1);
+	if (Vec3Df::dotProduct(N,C) < 0) { 
+		return false; 
+	}// P is on the right side 
+
+															   // edge 2
+	Vec3Df diffedge13 = edge1 - edge3;
+	Vec3Df vp2 = P - edge3;
+	C = Vec3Df::crossProduct(diffedge13, vp2);
+	if (Vec3Df::dotProduct(N, C) < 0) {
+		return false;
+	}// P is on the right side;
+
+	printf("hit a triangle");
+	return true;
+
+}
+
+bool rayPlaneIntersect(Vec3Df normal, Vec3Df planecenter, Vec3Df rayOr, Vec3Df rayDest) {
+	float denom = Vec3Df::dotProduct(normal, rayDest);
+	if (abs(denom) > FLT_EPSILON) // your favorite epsilon
+	{
+		float t = Vec3Df::dotProduct((planecenter - rayOr), normal)	 / denom;
+		return(t >= 0); // you might want to allow an epsilon here too
+	}
+	return false;
+}
+
 //return the color of your pixel.
 Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 {
-	return Vec3Df(dest[0],dest[1],dest[2]);
+
+	for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
+		Triangle currenttriangle = MyMesh.triangles[i];
+	if (
+		rayTriangleIntersect(origin, dest, MyMesh.vertices[currenttriangle.v[0]].p,
+			MyMesh.vertices[currenttriangle.v[1]].p, MyMesh.vertices[currenttriangle.v[2]].p))
+	 {
+				Vec3Df edge12 = MyMesh.vertices[currenttriangle.v[0]].p - MyMesh.vertices[currenttriangle.v[1]].p;
+				Vec3Df edge13 = MyMesh.vertices[currenttriangle.v[0]].p - MyMesh.vertices[currenttriangle.v[2]].p;
+				edge12.normalize();
+				edge13.normalize();
+				Vec3Df normal = Vec3Df::crossProduct(edge12, edge13);
+				normal.normalize();
+
+
+		}
+		
+	}
+	return Vec3Df(dest[0], dest[1], dest[2]);
 }
-
-
 
 
 void yourDebugDraw()
