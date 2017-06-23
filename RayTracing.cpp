@@ -55,69 +55,68 @@ void calculateMainBox(float &Xmax, float &Xmin, float &Ymax, float &Ymin, float 
 		Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
 		Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
 		Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
-		for (int i = 0; i > 3; i++) {}
-		if (v0[0] > Xmax) {
-			Xmax = v0[0];
-		}
-		if (v0[0] < Xmin) {
-			Xmin = v0[0];
-		}
-		if (v1[0] > Xmax) {
-			Xmax = v1[0];
-		}
-		if (v1[0] < Xmin) {
-			Xmin = v1[0];
-		}
-		if (v2[0] > Xmax) {
-			Xmax = v2[0];
-		}
-		if (v2[0] < Xmin) {
-			Xmin = v2[0];
-		}
-		if (v0[1] > Ymax) {
-			Ymax = v0[1];
-		}
-		if (v0[1] < Ymin) {
-			Ymin = v0[1];
-		}
-		if (v1[1] > Ymax) {
-			Ymax = v1[1];
-		}
-		if (v1[1] < Ymin) {
-			Ymin = v1[1];
-		}
-		if (v2[1] > Ymax) {
-			Ymax = v2[1];
-		}
-		if (v2[1] < Ymin) {
-			Ymin = v2[1];
-		}
-		if (v0[2] > Zmax) {
-			Zmax = v0[2];
-		}
-		if (v0[2] < Zmin) {
-			Zmin = v0[2];
-		}
-		if (v1[2] > Zmax) {
-			Zmax = v1[2];
-		}
-		if (v1[2] < Zmin) {
-			Zmin = v1[2];
-		}
-		if (v2[2] > Zmax) {
-			Zmax = v2[2];
-		}
-		if (v2[2] < Zmin) {
-			Zmin = v2[2];
-		}
+			if (v0[0] > Xmax) {
+				Xmax = v0[0];
+			}
+			if (v0[0] < Xmin) {
+				Xmin = v0[0];
+			}
+			if (v1[0] > Xmax) {
+				Xmax = v1[0];
+			}
+			if (v1[0] < Xmin) {
+				Xmin = v1[0];
+			}
+			if (v2[0] > Xmax) {
+				Xmax = v2[0];
+			}
+			if (v2[0] < Xmin) {
+				Xmin = v2[0];
+			}
+			if (v0[1] > Ymax) {
+				Ymax = v0[1];
+			}
+			if (v0[1] < Ymin) {
+				Ymin = v0[1];
+			}
+			if (v1[1] > Ymax) {
+				Ymax = v1[1];
+			}
+			if (v1[1] < Ymin) {
+				Ymin = v1[1];
+			}
+			if (v2[1] > Ymax) {
+				Ymax = v2[1];
+			}
+			if (v2[1] < Ymin) {
+				Ymin = v2[1];
+			}
+
+			if (v0[2] > Zmax) {
+				Zmax = v0[2];
+			}
+			if (v0[2] < Zmin) {
+				Zmin = v0[2];
+			}
+			if (v1[2] > Zmax) {
+				Zmax = v1[2];
+			}
+			if (v1[2] < Zmin) {
+				Zmin = v1[2];
+			}
+			if (v2[2] > Zmax) {
+				Zmax = v2[2];
+			}
+			if (v2[2] < Zmin) {
+				Zmin = v2[2];
+			}
+			
+		
 	}
 }
 
 bool intersectBox(const Vec3Df &origin, const Vec3Df &direction, float &Xmax, float &Xmin, float&Ymax, float&Ymin, float&Zmax, float &Zmin)
 {
-	//for plane orthogonal to x-axis, the normal is (1,0,0)
-	Vec3Df xnorm = Vec3Df(1, 0, 0);
-
 	//t = (xmin - Ox) / dxmin
 	float txmin = (Xmin - origin[0]) / direction[0];
 	
@@ -138,18 +137,16 @@ bool intersectBox(const Vec3Df &origin, const Vec3Df &direction, float &Xmax, fl
 	float tinz = min(tzmin, tzmax);
 	float toutz = max(tzmin, tzmax);
 
-	float tin = max(tinx, tiny, tinz);
-	float tout = min(toutx, touty, toutz);
+	float tin = max(max(tinx, tiny),max(tiny, tinz));
+	float tout = min(min(toutx, touty), min(touty, toutz));
 
 	if (tin > tout) {
-		std::cout << tin << " " << tout << " false \n";
 		return false;
 	}
 	if (tout < 0) {
-		std::cout << tin << " " << tout << "false \n";
 		return false;
 	}
-	std::cout << tin << " " << tout << "ftrue \n" ;
+	std::cout << "Tin:" << tin << " Tout: " << tout;
 	return true;
 }
 
@@ -210,6 +207,7 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 	Vec3Df direction = dest - origin;
 	float Xmax; float Xmin; float Ymax; float Ymin; float Zmax; float Zmin;
 	calculateMainBox(Xmax, Xmin, Ymax, Ymin, Zmax, Zmin);
+	std::cout << "Xmax: " << Xmax << " Xmin:  " << Xmin << " Ymax: " << Ymax << " Ymin: " << Ymin << " Zmax: " << Zmax << " Zmin: " << Zmin;
 
 	if (intersectBox(origin, direction, Xmax, Xmin, Ymax, Ymin, Zmax, Zmin)) {
 		std::cout << "Box hit!";
@@ -231,11 +229,10 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 
 				if (intersectPlane(normal, direction, origin, distance, t, planepos)) {
 					std::cout << "Plane hit!";
-						Vec3Df trianglepos;
+					Vec3Df trianglepos;
 					if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) {
 						std::cout << "Triangle hit!";
 					}
-
 				}
 
 			}
