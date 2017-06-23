@@ -211,36 +211,36 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 	float Xmax; float Xmin; float Ymax; float Ymin; float Zmax; float Zmin;
 	calculateMainBox(Xmax, Xmin, Ymax, Ymin, Zmax, Zmin);
 
-	if (intersectBox(origin, direction, Xmax, Xmin, Ymax, Ymin, Zmax, Zmin)){
-		std::cout << "Box hit!"
-		for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
-			Triangle currenttriangle = MyMesh.triangles[i];
+	if (intersectBox(origin, direction, Xmax, Xmin, Ymax, Ymin, Zmax, Zmin)) {
+		std::cout << "Box hit!";
+			for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
+				Triangle currenttriangle = MyMesh.triangles[i];
 
-			Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
-			Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
-			Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
+				Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
+				Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
+				Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
 
-			Vec3Df edge12 = v0 - v1;
-			Vec3Df edge13 = v0 - v2;
-			Vec3Df normal = Vec3Df::crossProduct(edge12, edge13);
-			normal.normalize();
+				Vec3Df edge12 = v0 - v1;
+				Vec3Df edge13 = v0 - v2;
+				Vec3Df normal = Vec3Df::crossProduct(edge12, edge13);
+				normal.normalize();
 
-			float distance = Vec3Df::dotProduct(normal, v0);
-			Vec3Df planepos;
-			float t;
+				float distance = Vec3Df::dotProduct(normal, v0);
+				Vec3Df planepos;
+				float t;
 
-			if (intersectPlane(normal, direction, origin, distance, t, planepos)) {
-				std::cout << "Plane hit!"
-				Vec3Df trianglepos;
-				if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) {
-					std::cout << "Triangle hit!"
+				if (intersectPlane(normal, direction, origin, distance, t, planepos)) {
+					std::cout << "Plane hit!";
+						Vec3Df trianglepos;
+					if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) {
+						std::cout << "Triangle hit!";
+					}
+
 				}
 
 			}
-
-		}
-		
 	}
+
 	return Vec3Df(dest[0], dest[1], dest[2]);
 }
 
