@@ -212,7 +212,7 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 	calculateMainBox(Xmax, Xmin, Ymax, Ymin, Zmax, Zmin);
 
 	if (intersectBox(origin, direction, Xmax, Xmin, Ymax, Ymin, Zmax, Zmin)){
-		std::cout << "Box hit!"
+		std::cout << "Box hit!";
 		for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
 			Triangle currenttriangle = MyMesh.triangles[i];
 
@@ -230,10 +230,10 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 			float t;
 
 			if (intersectPlane(normal, direction, origin, distance, t, planepos)) {
-				std::cout << "Plane hit!"
+				std::cout << "Plane hit!";
 				Vec3Df trianglepos;
 				if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) {
-					std::cout << "Triangle hit!"
+					std::cout << "Triangle hit!";
 				}
 
 			}
