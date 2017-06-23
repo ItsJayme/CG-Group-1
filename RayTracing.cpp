@@ -21,8 +21,6 @@ std::vector<float> Shininess;//exponent for phong and blinn-phong specularities
 //use this function for any preprocessing of the mesh.
 void init()
 {
-
-
 	//load the mesh file
 	//please realize that not all OBJ files will successfully load.
 	//Nonetheless, if they come from Blender, they should, if they 
@@ -44,9 +42,116 @@ void init()
 	Shininess.resize(MyMesh.vertices.size(), 3);
 }
 
+void calculateMainBox(float &Xmax, float &Xmin, float &Ymax, float &Ymin, float &Zmax, float &Zmin)
+{
+	Xmax = -HUGE_VALF;
+	Xmin = HUGE_VALF;
+	Ymax = -HUGE_VALF;
+	Ymin = HUGE_VALF;
+	Zmax = -HUGE_VALF;
+	Zmin = HUGE_VALF;
+	for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
+		Triangle currenttriangle = MyMesh.triangles[i];
+		Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
+		Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
+		Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
+		for (int i = 0; i > 3; i++) {}
+		if (v0[0] > Xmax) {
+			Xmax = v0[0];
+		}
+		if (v0[0] < Xmin) {
+			Xmin = v0[0];
+		}
+		if (v1[0] > Xmax) {
+			Xmax = v1[0];
+		}
+		if (v1[0] < Xmin) {
+			Xmin = v1[0];
+		}
+		if (v2[0] > Xmax) {
+			Xmax = v2[0];
+		}
+		if (v2[0] < Xmin) {
+			Xmin = v2[0];
+		}
+		if (v0[1] > Ymax) {
+			Ymax = v0[1];
+		}
+		if (v0[1] < Ymin) {
+			Ymin = v0[1];
+		}
+		if (v1[1] > Ymax) {
+			Ymax = v1[1];
+		}
+		if (v1[1] < Ymin) {
+			Ymin = v1[1];
+		}
+		if (v2[1] > Ymax) {
+			Ymax = v2[1];
+		}
+		if (v2[1] < Ymin) {
+			Ymin = v2[1];
+		}
+		if (v0[2] > Zmax) {
+			Zmax = v0[2];
+		}
+		if (v0[2] < Zmin) {
+			Zmin = v0[2];
+		}
+		if (v1[2] > Zmax) {
+			Zmax = v1[2];
+		}
+		if (v1[2] < Zmin) {
+			Zmin = v1[2];
+		}
+		if (v2[2] > Zmax) {
+			Zmax = v2[2];
+		}
+		if (v2[2] < Zmin) {
+			Zmin = v2[2];
+		}
+	}
+}
 
+bool intersectBox(const Vec3Df &origin, const Vec3Df &direction, float &Xmax, float &Xmin, float&Ymax, float&Ymin, float&Zmax, float &Zmin)
+{
+	//for plane orthogonal to x-axis, the normal is (1,0,0)
+	Vec3Df xnorm = Vec3Df(1, 0, 0);
 
+	//t = (xmin - Ox) / dxmin
+	float txmin = (Xmin - origin[0]) / direction[0];
+	
+	float txmax = (Xmax - origin[0]) / direction[0];
 
+	float tymin = (Ymin - origin[1]) / direction[1];
+
+	float tymax = (Ymax - origin[1]) / direction[1];
+
+	float tzmin = (Zmin - origin[2]) / direction[2];
+
+	float tzmax = (Zmax - origin[2]) / direction[2];
+
+	float tinx = min(txmin, txmax);
+	float toutx = max(txmin, txmax);
+	float tiny = min(tymin, tymax);
+	float touty = max(tymin, tymax);
+	float tinz = min(tzmin, tzmax);
+	float toutz = max(tzmin, tzmax);
+
+	float tin = max(tinx, tiny, tinz);
+	float tout = min(toutx, touty, toutz);
+
+	if (tin > tout) {
+		std::cout << tin << " " << tout << " false \n";
+		return false;
+	}
+	if (tout < 0) {
+		std::cout << tin << " " << tout << "false \n";
+		return false;
+	}
+	std::cout << tin << " " << tout << "ftrue \n" ;
+	return true;
+}
 
 bool intersectPlane(const Vec3Df &normal, const Vec3Df &direction, const Vec3Df &origin, float &distance, float &t, Vec3Df &planepos)
 {
@@ -60,9 +165,7 @@ bool intersectPlane(const Vec3Df &normal, const Vec3Df &direction, const Vec3Df 
 			return true;
 		}
 	}
-
 	return false;
-
 }
 
 bool rayTriangleIntersect(Vec3Df &planepos, Triangle &triangle, Vec3Df &trianglepos, Vec3Df &normal) {
@@ -94,6 +197,8 @@ bool rayTriangleIntersect(Vec3Df &planepos, Triangle &triangle, Vec3Df &triangle
 	}
 }
 
+
+
 Vec3Df getTriangleCenter(const Vec3Df &edge1, const Vec3Df &edge2, const Vec3Df &edge3) {
 	Vec3Df centerOfTriangle = (edge1 + edge2 + edge3 / 3);
 	return centerOfTriangle;
@@ -102,30 +207,39 @@ Vec3Df getTriangleCenter(const Vec3Df &edge1, const Vec3Df &edge2, const Vec3Df 
 //return the color of your pixel.
 Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 {
-	for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
-		Triangle currenttriangle = MyMesh.triangles[i];
+	Vec3Df direction = dest - origin;
+	float Xmax; float Xmin; float Ymax; float Ymin; float Zmax; float Zmin;
+	calculateMainBox(Xmax, Xmin, Ymax, Ymin, Zmax, Zmin);
 
-		Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
-		Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
-		Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
+	if (intersectBox(origin, direction, Xmax, Xmin, Ymax, Ymin, Zmax, Zmin)){
+		std::cout << "Box hit!"
+		for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
+			Triangle currenttriangle = MyMesh.triangles[i];
 
-		Vec3Df edge12 = v0 - v1;
-		Vec3Df edge13 = v0 - v2;
-		Vec3Df normal = Vec3Df::crossProduct(edge12, edge13);
-		normal.normalize();
+			Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
+			Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
+			Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
 
-		float distance = Vec3Df::dotProduct(normal, v0);
-		Vec3Df direction = dest - origin;
-		Vec3Df planepos;
-		float t;
+			Vec3Df edge12 = v0 - v1;
+			Vec3Df edge13 = v0 - v2;
+			Vec3Df normal = Vec3Df::crossProduct(edge12, edge13);
+			normal.normalize();
 
-		if (intersectPlane(normal, direction, origin, distance, t, planepos)) {
-			Vec3Df trianglepos;
-			if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) {
-				printf("hit \n");
+			float distance = Vec3Df::dotProduct(normal, v0);
+			Vec3Df planepos;
+			float t;
+
+			if (intersectPlane(normal, direction, origin, distance, t, planepos)) {
+				std::cout << "Plane hit!"
+				Vec3Df trianglepos;
+				if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) {
+					std::cout << "Triangle hit!"
+				}
+
 			}
-			
+
 		}
+		
 	}
 	return Vec3Df(dest[0], dest[1], dest[2]);
 }
