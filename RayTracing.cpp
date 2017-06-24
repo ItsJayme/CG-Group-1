@@ -219,7 +219,7 @@ void splitBox(Box parentBox, Box ChildBoxA, Box ChildBoxB, int maxNoTriangle) {
 			ChildBoxA.setMinY(parentBox.getMinY());
 			ChildBoxA.setMaxZ(parentBox.getMaxZ());
 			ChildBoxA.setMinZ(parentBox.getMinZ());
-			parentBox.setLeftChild(ChildBoxA);
+			parentBox.setLeftChild(&ChildBoxA);
 			Box A;
 			Box B;
 			splitBox(ChildBoxA, A, B, maxNoTriangle);
@@ -229,7 +229,7 @@ void splitBox(Box parentBox, Box ChildBoxA, Box ChildBoxB, int maxNoTriangle) {
 			ChildBoxB.setMinY(parentBox.getMinY());
 			ChildBoxB.setMaxZ(parentBox.getMaxZ());
 			ChildBoxB.setMinZ(parentBox.getMinZ());
-			parentBox.setRighttChild(ChildBoxB);
+			parentBox.setRighttChild(&ChildBoxB);
 			Box C;
 			Box D;
 			splitBox(ChildBoxB, C, D, maxNoTriangle);
@@ -242,7 +242,7 @@ void splitBox(Box parentBox, Box ChildBoxA, Box ChildBoxB, int maxNoTriangle) {
 			ChildBoxA.setMinY(parentBox.getMinY());
 			ChildBoxA.setMaxZ(parentBox.getMaxZ());
 			ChildBoxA.setMinZ(parentBox.getMinZ());
-			parentBox.setLeftChild(ChildBoxA);
+			parentBox.setLeftChild(&ChildBoxA);
 			Box A;
 			Box B;
 			splitBox(ChildBoxA, A, B, maxNoTriangle);
@@ -252,7 +252,7 @@ void splitBox(Box parentBox, Box ChildBoxA, Box ChildBoxB, int maxNoTriangle) {
 			ChildBoxB.setMinY(parentBox.getMinY() + xlength / 2);
 			ChildBoxB.setMaxZ(parentBox.getMaxZ());
 			ChildBoxB.setMinZ(parentBox.getMinZ());
-			parentBox.setRighttChild(ChildBoxB);
+			parentBox.setRighttChild(&ChildBoxB);
 			Box C;
 			Box D;
 			splitBox(ChildBoxB, C, D, maxNoTriangle);
@@ -265,7 +265,7 @@ void splitBox(Box parentBox, Box ChildBoxA, Box ChildBoxB, int maxNoTriangle) {
 			ChildBoxA.setMinY(parentBox.getMinY());
 			ChildBoxA.setMaxZ(parentBox.getMaxZ() + xlength / 2);
 			ChildBoxA.setMinZ(parentBox.getMinZ());
-			parentBox.setLeftChild(ChildBoxA);
+			parentBox.setLeftChild(&ChildBoxA);
 			Box A;
 			Box B;
 			splitBox(ChildBoxA, A, B, maxNoTriangle);
@@ -275,7 +275,7 @@ void splitBox(Box parentBox, Box ChildBoxA, Box ChildBoxB, int maxNoTriangle) {
 			ChildBoxB.setMinY(parentBox.getMinY());
 			ChildBoxB.setMaxZ(parentBox.getMaxZ());
 			ChildBoxB.setMinZ(parentBox.getMinZ() + xlength / 2);
-			parentBox.setRighttChild(ChildBoxB);
+			parentBox.setRighttChild(&ChildBoxB);
 			Box C;
 			Box D;
 			splitBox(ChildBoxB, C, D, maxNoTriangle);
