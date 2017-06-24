@@ -224,10 +224,10 @@ bool  Shade(Vec3Df shadowOrig, Vec3Df shadowDest, Vec3Df normal, float &t, Vec3D
 		Vec3Df edge12 = v0 - v1;
 		Vec3Df edge13 = v0 - v2;
 		//take the normal of the edges
-		Vec3Df normal = Vec3Df::crossProduct(edge12, edge13);
-		normal.normalize();
+		Vec3Df nnormal = Vec3Df::crossProduct(edge12, edge13);
+		nnormal.normalize();
 		//start iterating through the lighting positions
-		if (rayTriangleIntersect(planepos, thistriangle, trianglepos, normal)) {//test if the shadow ray hits a triangle on said plane
+		if (rayTriangleIntersect(planepos, thistriangle, trianglepos, nnormal)) {//test if the shadow ray hits a triangle on said plane
 			printf("shadedT");
 			return true;
 			}
