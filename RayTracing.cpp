@@ -249,23 +249,13 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 			Vec3Df shadowdir = shadowdest - shadoworig;
 			if (intersectBox(shadoworig, shadowdir, Xmax, Xmin, Ymax, Ymin, Zmax, Zmin)) {
 
-				if (intersectPlane(normal, shadowdir, shadoworig, distance, t, planepos)) {
-					Vec3Df trianglepos;
-					for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
-						Triangle currenttriangle = MyMesh.triangles[i];
-						if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) {
-							return Vec3Df(0, 0, 0);
-						}
-					}
-
+				if (Shade(shadoworig, shadowdest, normal, t, planepos, distance, currenttriangle)) {
+					return Vec3Df(0, 0, 0);
 				}
-
 			}
-
 		}
-	}
 
-	if (intersectBox(origin, direction, Xmax, Xmin, Ymax, Ymin, Zmax, Zmin)) {
+		if (intersectBox(origin, direction, Xmax, Xmin, Ymax, Ymin, Zmax, Zmin)) {
 			for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
 				Triangle currenttriangle = MyMesh.triangles[i];
 
@@ -293,8 +283,8 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 
 
 			}
+		}
 	}
-
 
 	return Vec3Df(.1, 1, .1);
 }

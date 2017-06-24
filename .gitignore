@@ -295,3 +295,4 @@ __pycache__/
 *.xsd.cs
 
 Release/*
+enc_temp_folder/c211247923f5a8e7874cb7f3651973a/RayTracing.cpp
