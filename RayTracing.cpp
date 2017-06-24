@@ -227,8 +227,45 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 	calculateMainBox(Xmax, Xmin, Ymax, Ymin, Zmax, Zmin);
 	std::cout << "Xmax: " << Xmax << " Xmin:  " << Xmin << " Ymax: " << Ymax << " Ymin: " << Ymin << " Zmax: " << Zmax << " Zmin: " << Zmin;
 
+	for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
+		Triangle currenttriangle = MyMesh.triangles[i];
+
+		Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
+		Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
+		Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
+
+		Vec3Df edge12 = v0 - v1;
+		Vec3Df edge13 = v0 - v2;
+		Vec3Df normal = Vec3Df::crossProduct(edge12, edge13);
+		normal.normalize();
+
+		float distance = Vec3Df::dotProduct(normal, v0);
+		Vec3Df planepos;
+		float t;
+
+		for (int i = 0; i < MyLightPositions.size(); i++) {
+			Vec3Df shadoworig = getTriangleCenter(v0, v1, v2);
+			Vec3Df shadowdest = MyLightPositions[i].p;
+			Vec3Df shadowdir = shadowdest - shadoworig;
+			if (intersectBox(shadoworig, shadowdir, Xmax, Xmin, Ymax, Ymin, Zmax, Zmin)) {
+
+				if (intersectPlane(normal, shadowdir, shadoworig, distance, t, planepos)) {
+					Vec3Df trianglepos;
+					for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
+						Triangle currenttriangle = MyMesh.triangles[i];
+						if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) {
+							return Vec3Df(0, 0, 0);
+						}
+					}
+
+				}
+
+			}
+
+		}
+	}
+
 	if (intersectBox(origin, direction, Xmax, Xmin, Ymax, Ymin, Zmax, Zmin)) {
-		std::cout << "Box hit!";
 			for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
 				Triangle currenttriangle = MyMesh.triangles[i];
 
@@ -248,24 +285,18 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 				if (intersectPlane(normal, direction, origin, distance, t, planepos)) {
 					Vec3Df trianglepos;
 					if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) {
-						std::cout << "Triangle hit!";
-
+						return Vec3Df(1, 1, 1);
 					}
 
 				}
-				for (int i = 0; i < MyLightPositions.size(); i++) {
-						Vec3Df shadowDest = MyLightPositions[i].p;	//light source
-						Vec3Df shadowOrig = getTriangleCenter(v0, v1, v2);	//triangle center
-						if (Shade(shadowOrig, shadowDest, normal, t, planepos, distance, currenttriangle)) {
-							return Vec3Df(0, 0, 0);
-						}
-				}
+
 
 
 			}
 	}
 
-	return Vec3Df(dest[0], dest[1], dest[2]);
+
+	return Vec3Df(.1, 1, .1);
 }
 
 void yourDebugDraw()
