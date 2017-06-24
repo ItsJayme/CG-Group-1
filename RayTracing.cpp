@@ -155,7 +155,7 @@ bool intersectBox(const Vec3Df &origin, const Vec3Df &direction, float &Xmax, fl
 bool intersectPlane(const Vec3Df &normal, const Vec3Df &direction, const Vec3Df &origin, float &distance, float &t, Vec3Df &planepos)
 {
 	// t = (dist - dot(orig, normal) / dot(direction, normal)
-	float denominator = (distance - Vec3Df::dotProduct(origin, normal));
+	float denominator = (distance - Vec3Df::dotProduct(origin, normal));	
 	if (Vec3Df::dotProduct(direction,normal) != 0) {
 		float numerator = Vec3Df::dotProduct(direction, normal);
 		t = denominator / numerator;
@@ -170,25 +170,29 @@ bool intersectPlane(const Vec3Df &normal, const Vec3Df &direction, const Vec3Df 
 bool rayTriangleIntersect(Vec3Df &planepos, Triangle &triangle, Vec3Df &trianglepos, Vec3Df &normal) {
 
 	Vec3Df bary;
-	Vec3Df a = MyMesh.vertices[triangle.v[0]].p;
-	Vec3Df b = MyMesh.vertices[triangle.v[1]].p;
-	Vec3Df c = MyMesh.vertices[triangle.v[2]].p;
+	Vec3Df a = MyMesh.vertices[triangle.v[0]].p;	//corner a
+	Vec3Df b = MyMesh.vertices[triangle.v[1]].p;	//corner b
+	Vec3Df c = MyMesh.vertices[triangle.v[2]].p;	//corner c
 	
-	float areaABC = Vec3Df::dotProduct(normal, Vec3Df::crossProduct((b - a), (c - a)));
+	// takes surface areas between points ABC, between the hitpoint B&C and between the hitpoint & A&C
+	float areaABC = Vec3Df::dotProduct(normal, Vec3Df::crossProduct((b - a), (c - a)));	
 	float areaPBC = Vec3Df::dotProduct(normal, Vec3Df::crossProduct((b - planepos), (c - planepos)));
 	float areaPCA = Vec3Df::dotProduct(normal, Vec3Df::crossProduct((c - planepos), (a - planepos)));
 
-	bary[0] = areaPBC / areaABC;
-	bary[1] = areaPCA / areaABC;
-	bary[2] = 1 - bary[0] - bary[1];
+	bary[0] = areaPBC / areaABC;	// calculate how close the hitpoint is to A
+	bary[1] = areaPCA / areaABC;	// calculate how close the hitpoint is to B
+	bary[2] = 1 - bary[0] - bary[1];	// calculate how close the hitpoint is to C
 
-	if ((bary[0] < 0) || (bary[0] > 1)) {
+	// if any of these coords is 1, it lies exactly on the point it represents if it makes it through the next 3 
+	// if statements, otherwise it falls outside the triangle
+
+	if ((bary[0] < 0)) {	//if A is smaller than 0, the point lies outside the triangle
 		return false;
 	}
-	if ((bary[1] < 0) || (bary[1] > 1)) {
+	if ((bary[1] < 0)) {	//if B is smaller than 0, the point lies outside the triangle
 		return false;
 	}
-	if (bary[0] + bary[1] > 1) {
+	if (bary[0] + bary[1] > 1) {	//if A + B is larger than 1, the point lies outside the triangle
 		return false;
 	}
 	else {
