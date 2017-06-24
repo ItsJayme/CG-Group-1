@@ -265,19 +265,26 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 			for (int i = 0; i < MyLightPositions.size(); i++) {
 				Vec3Df shadowDest = MyLightPositions[i].p;
 				Vec3Df trianglepos;
+				float shadowt;
 				float shaddistance = Vec3Df::dotProduct(normal, v0) - 0.0009;
-				if (Shade(shadowOrig, shadowDest, normal, t, planepos, shaddistance, currenttriangle)) {
-					return Vec3Df(1, 1, 1);
+				if (Shade(shadowOrig, shadowDest, normal, shadowt, planepos, shaddistance, currenttriangle)) {
 				}
 			
-			if (intersectPlane(normal, direction, origin, distance, t, planepos)) {	//test if the ray intersects with a plane
-				Vec3Df trianglepos;
-				if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) { //test if it then intersects with a triangle
-					return Vec3Df(0, 0, 0);	//assign a white colour if it hits
+				if (intersectPlane(normal, direction, origin, distance, t, planepos)) {	//test if the ray intersects with a plane
+					Vec3Df trianglepos;
+					if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) { //test if it then intersects with a triangle
+					}
+
 				}
-
-			}
-
+				if (shadowt < t) {
+					return Vec3Df(0, 0, 0);
+				}
+				if (shadowt > t) {
+					return Vec3Df(1, 1, 1);
+				}
+				else {
+					return Vec3Df(.5, .7, .9);
+				}
 		}
 			
 
