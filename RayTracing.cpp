@@ -173,7 +173,7 @@ bool rayTriangleIntersect(Vec3Df &planepos, Triangle &triangle, Vec3Df &triangle
 	Vec3Df a = MyMesh.vertices[triangle.v[0]].p;
 	Vec3Df b = MyMesh.vertices[triangle.v[1]].p;
 	Vec3Df c = MyMesh.vertices[triangle.v[2]].p;
-
+	
 	float areaABC = Vec3Df::dotProduct(normal, Vec3Df::crossProduct((b - a), (c - a)));
 	float areaPBC = Vec3Df::dotProduct(normal, Vec3Df::crossProduct((b - planepos), (c - planepos)));
 	float areaPCA = Vec3Df::dotProduct(normal, Vec3Df::crossProduct((c - planepos), (a - planepos)));
@@ -197,7 +197,7 @@ bool rayTriangleIntersect(Vec3Df &planepos, Triangle &triangle, Vec3Df &triangle
 }
 
 
-
+//returns the exact center of a triangle by taking the average of the distance of the points
 Vec3Df getTriangleCenter(const Vec3Df &edge1, const Vec3Df &edge2, const Vec3Df &edge3) {
 	Vec3Df centerOfTriangle = (edge1 + edge2 + edge3 / 3);
 	return centerOfTriangle;
@@ -230,17 +230,17 @@ bool  Shade(Vec3Df shadowOrig, Vec3Df shadowDest, Vec3Df normal, float &t, Vec3D
 			printf("shadedT");
 			return true;
 		}
+		}
 	}
-	}
-	return false;
+	return false;// return false if it doesnt intersect any triangles, this code may be faulty
 }
 
 //return the color of your pixel.
 Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 {
-	Vec3Df direction = dest - origin;
+	Vec3Df direction = dest - origin;	//get the direction of the ray to be traced
 	float Xmax; float Xmin; float Ymax; float Ymin; float Zmax; float Zmin;
-	calculateMainBox(Xmax, Xmin, Ymax, Ymin, Zmax, Zmin);
+	calculateMainBox(Xmax, Xmin, Ymax, Ymin, Zmax, Zmin);	//create the main bounding box, any rays outside this are not calculated for
 
 
 	if (intersectBox(origin, direction, Xmax, Xmin, Ymax, Ymin, Zmax, Zmin)) {	//test if the ray hits a bounding box
