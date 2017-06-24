@@ -208,32 +208,29 @@ Vec3Df getTriangleCenter(const Vec3Df &edge1, const Vec3Df &edge2, const Vec3Df 
 }
 
 bool  Shade(Vec3Df shadowOrig, Vec3Df shadowDest, Vec3Df normal, float &t, Vec3Df planepos, float distance, Triangle currenttriangle) {
-	Vec3Df direction = shadowDest - shadowOrig;	//direction of the shadow, towards the light
+	Vec3Df direction = shadowOrig - shadowDest;	//direction of the shadow, towards the light
 	if (Vec3Df::dotProduct(normal,direction) < FLT_EPSILON) { //test if the triangle can even be hit by light, if not, return true
-		printf("shadedN");
 		return true;
 	}
 	if (intersectPlane(normal, direction, shadowOrig, distance, t, planepos)) {//run an intersect plane to see if the shadow ray hits a plane
 		Vec3Df trianglepos;
 		for (int i = 0; i < MyMesh.triangles.size(); i++) {
-		Triangle currenttriangle = MyMesh.triangles[i];	//assign an easier to use name to the triangle
-														//get the corners
-		Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
-		Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
-		Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
+		Triangle thistriangle = MyMesh.triangles[i];	//assign an easier to use name to the triangle
+		//get the corners
+		Vec3Df v0 = MyMesh.vertices[thistriangle.v[0]].p;
+		Vec3Df v1 = MyMesh.vertices[thistriangle.v[1]].p;
+		Vec3Df v2 = MyMesh.vertices[thistriangle.v[2]].p;
 		//calculate edges to corner 1
 		Vec3Df edge12 = v0 - v1;
 		Vec3Df edge13 = v0 - v2;
 		//take the normal of the edges
 		Vec3Df normal = Vec3Df::crossProduct(edge12, edge13);
 		normal.normalize();
-		//get the origin of the shadow ray
-		Vec3Df shadoworig = getTriangleCenter(v0, v1, v2);
 		//start iterating through the lighting positions
-		if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) {//test if the shadow ray hits a triangle on said plane
+		if (rayTriangleIntersect(planepos, thistriangle, trianglepos, normal)) {//test if the shadow ray hits a triangle on said plane
 			printf("shadedT");
 			return true;
-		}
+			}
 		}
 	}
 	return false;// return false if it doesnt intersect any triangles, this code may be faulty
@@ -259,8 +256,8 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 			Vec3Df edge13 = v0 - v2;
 			//get the normal by performing a crossproduct of the 2 calculated edges from the point
 			Vec3Df normal = Vec3Df::crossProduct(edge12, edge13);
-			normal.normalize(); 
-			
+			normal.normalize();
+
 			float distance = Vec3Df::dotProduct(normal, v0); //calculate the distance between the corner and the normal
 			Vec3Df planepos;
 			float t;
@@ -272,35 +269,20 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 				}
 
 			}
-
-		}
-
-		for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) { //go through the list of triangles
-			Triangle currenttriangle = MyMesh.triangles[i];	//assign an easier to use name to the triangle
-			//get the corners
-			Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
-			Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
-			Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
-			//calculate edges to corner 1
-			Vec3Df edge12 = v0 - v1;
-			Vec3Df edge13 = v0 - v2;
-			//take the normal of the edges
-			Vec3Df normal = Vec3Df::crossProduct(edge12, edge13);
-			normal.normalize();
-			//get the origin of the shadow ray
-			Vec3Df shadoworig = getTriangleCenter(v0, v1, v2);
-			//start iterating through the lighting positions
+			Vec3Df shadowOrig = getTriangleCenter(v0, v1, v2);
 			for (int i = 0; i < MyLightPositions.size(); i++) {
-				float t;
-				Vec3Df planepos;
-				Vec3Df shadowdest = MyLightPositions[i].p;	//destination is the light source
-
-				float shadowdistance = Vec3Df::dotProduct(normal, v0); //calculate the distance between corner 1 and the normal
-				if (Shade(shadoworig, shadowdest, normal, t, planepos, shadowdistance, currenttriangle)) { //run it through shading
-					return Vec3Df(0, 0, 0);	//return a value of 0.0.0 if it doesnt hit
+				Vec3Df shadowDest = MyLightPositions[i].p;
+				Vec3Df trianglepos;
+				float distance = Vec3Df::dotProduct(normal, v0);
+				if (Shade(shadowOrig, shadowDest, normal, t, planepos, distance, currenttriangle)) {
+					return Vec3Df(0, 0, 0);
 				}
-			}
 		}
+			
+
+		}
+
+
 	}
 	return Vec3Df(.1, 1, .1);	//return an arbitrary colour if no bounding boxes are hit
 }
