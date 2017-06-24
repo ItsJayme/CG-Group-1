@@ -195,7 +195,7 @@ bool rayTriangleIntersect(Vec3Df &planepos, Triangle &triangle, Vec3Df &triangle
 	if (bary[0] + bary[1] > 1) {	//if A + B is larger than 1, the point lies outside the triangle
 		return false;
 	}
-	else {
+	else {	//if it made it this far, 
 		return true;
 	}
 }
