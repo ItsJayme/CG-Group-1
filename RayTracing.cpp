@@ -150,6 +150,8 @@ bool intersectBox(const Vec3Df &origin, const Vec3Df &direction, float &Xmax, fl
 	return true;
 }
 
+
+
 bool intersectPlane(const Vec3Df &normal, const Vec3Df &direction, const Vec3Df &origin, float &distance, float &t, Vec3Df &planepos)
 {
 	// t = (dist - dot(orig, normal) / dot(direction, normal)
@@ -201,6 +203,22 @@ Vec3Df getTriangleCenter(const Vec3Df &edge1, const Vec3Df &edge2, const Vec3Df 
 	return centerOfTriangle;
 }
 
+bool  Shade(Vec3Df shadowOrig, Vec3Df shadowDest, Vec3Df normal, float t, Vec3Df planepos, float distance, Triangle currenttriangle) {
+	Vec3Df direction = shadowDest - shadowOrig;
+	if (Vec3Df::dotProduct(normal,shadowDest)) {
+		printf("shadedN");
+		return true;
+	}
+	if (intersectPlane(normal, direction, shadowOrig, distance, t, planepos)) {
+		Vec3Df trianglepos;
+		if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) {
+			printf("shadedT");
+			return true;
+		}
+	}
+	return false;
+}
+
 //return the color of your pixel.
 Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 {
@@ -232,8 +250,17 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 					Vec3Df trianglepos;
 					if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) {
 						std::cout << "Triangle hit!";
+
 					}
+
 				}
+				for (int i = 0; i < MyLightPositions.size(); i++) {
+						Vec3Df shadowDest = MyLightPositions[i].p;	//light source
+						Vec3Df shadowOrig = getTriangleCenter(v0, v1, v2);	//triangle center
+						Shade(shadowOrig, shadowDest, normal, t, planepos, distance, currenttriangle);
+
+				}
+
 
 			}
 	}
