@@ -244,24 +244,41 @@ void splitBox(Box parentBox, int maxNoTriangle) {
 	Box ChildBoxA; 
 	Box ChildBoxB;
 	float xlength = parentBox.getMaxX() - parentBox.getMinX();
-	ChildBoxA.setMaxX((parentBox.getMaxX() + parentBox.getMinX())/2);
+	float ylength = parentBox.getMaxY() - parentBox.getMinY();
+	float zlength = parentBox.getMaxZ() - parentBox.getMinZ();
+
 	ChildBoxA.setMinX(parentBox.getMinX());
+	ChildBoxA.setMaxX(parentBox.getMaxX());
 	ChildBoxA.setMaxY(parentBox.getMaxY());
 	ChildBoxA.setMinY(parentBox.getMinY());
 	ChildBoxA.setMaxZ(parentBox.getMaxZ());
 	ChildBoxA.setMinZ(parentBox.getMinZ());
 
 	ChildBoxB.setMaxX(parentBox.getMaxX());
-	ChildBoxB.setMinX((parentBox.getMaxX() + parentBox.getMinX()) / 2);
+	ChildBoxB.setMinX(parentBox.getMinX());
 	ChildBoxB.setMaxY(parentBox.getMaxY());
 	ChildBoxB.setMinY(parentBox.getMinY());
 	ChildBoxB.setMaxZ(parentBox.getMaxZ());
 	ChildBoxB.setMinZ(parentBox.getMinZ());
+	if (xlength >= ylength && xlength >= zlength) {
+		ChildBoxA.setMaxX((parentBox.getMaxX() + parentBox.getMinX()) / 2);
+		ChildBoxB.setMinX((parentBox.getMaxX() + parentBox.getMinX()) / 2);
+	}
+	else if (ylength >= xlength && ylength >= zlength) {
+		ChildBoxA.setMaxY((parentBox.getMaxY() + parentBox.getMinY()) / 2);
+		ChildBoxB.setMinY((parentBox.getMaxY() + parentBox.getMinY()) / 2);
+	}
+	else if (zlength >= xlength && zlength >= ylength) {
+		ChildBoxA.setMaxZ((parentBox.getMaxZ() + parentBox.getMinZ()) / 2);
+		ChildBoxB.setMinZ((parentBox.getMaxZ() + parentBox.getMinZ()) / 2);
+	}
 	parentBox.setLeftChild(&ChildBoxA);
+
 	parentBox.setRighttChild(&ChildBoxB);
-	
-	splitBox(ChildBoxA,  maxNoTriangle);
-	splitBox(ChildBoxB,  maxNoTriangle);
+
+
+	splitBox(ChildBoxA, maxNoTriangle);
+	splitBox(ChildBoxB, maxNoTriangle);
 }
 
 //Bool ray intersect box
@@ -329,10 +346,16 @@ void init()
 	Ks.resize(MyMesh.vertices.size(), Vec3Df(0.5, 0.5, 0.5));
 	Shininess.resize(MyMesh.vertices.size(), 3);
 	Box mainbox = calculateMainBox();
+	
 	Box a;
 	Box b;
-	int maxTrianglesInBox = 1000;
-	std::cout << "init: " << TrianglesInBox(mainbox);
+	mainbox.setLeftChild(&a);
+	mainbox.setRighttChild(&b);
+	std::list<Box> resultList;
+	getBoxesWithoutChildren(resultList, mainbox);
+	std::cout << resultList.size();
+
+	int maxTrianglesInBox = 10000;
 	splitBox(mainbox,  maxTrianglesInBox);
 }
 
@@ -562,7 +585,6 @@ void yourDebugDraw()
 	std::list<Box> resultList;
 	Box mainbox = calculateMainBox();
 	getBoxesWithoutChildren(resultList, mainbox);
-	std::cout << resultList.size();
 	drawBox(mainbox);
 	for (std::list<Box>::const_iterator iter = resultList.begin(); iter != resultList.end(); iter++) {
 		Box box = *iter;
