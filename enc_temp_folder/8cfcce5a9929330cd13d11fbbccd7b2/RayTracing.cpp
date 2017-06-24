@@ -205,7 +205,7 @@ Vec3Df getTriangleCenter(const Vec3Df &edge1, const Vec3Df &edge2, const Vec3Df 
 
 bool  Shade(Vec3Df shadowOrig, Vec3Df shadowDest, Vec3Df normal, float t, Vec3Df planepos, float distance, Triangle currenttriangle) {
 	Vec3Df direction = shadowDest - shadowOrig;
-	if (Vec3Df::dotProduct(normal,shadowDest) < FLT_EPSILON) {
+	if (Vec3Df::dotProduct(normal,shadowDest)) {
 		printf("shadedN");
 		return true;
 	}
