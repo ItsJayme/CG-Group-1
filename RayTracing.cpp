@@ -102,6 +102,20 @@ public:
 	}
 };
 
+void getBoxesWithoutChildren(std::list<Box>& result, Box& box) {
+	Box* leftChild = box.getLeftChild();
+	Box* rightChild = box.getRightChild();
+
+	if (leftChild) {
+		getBoxesWithoutChildren(result, *leftChild);
+	}
+	else if (rightChild) {
+		getBoxesWithoutChildren(result, *rightChild);
+	}
+	else {
+		result.push_back(box);
+	}
+}
 
 Box calculateMainBox()
 {
