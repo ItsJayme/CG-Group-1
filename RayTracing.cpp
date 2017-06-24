@@ -19,6 +19,7 @@ std::vector<Vec3Df> Kd;//diffuse coefficient per vertex
 std::vector<Vec3Df> Ks;//specularity coefficient per vertex
 std::vector<float> Shininess;//exponent for phong and blinn-phong specularities
 
+//Box class
 class Box {
 	std::vector<Triangle> t;
 	float values[6];
@@ -34,6 +35,10 @@ public:
 
 	void addTriangle(Triangle triangle) {
 		t.push_back(triangle);
+	}
+
+	void removeTriangles() {
+		t.clear();
 	}
 
 
@@ -102,14 +107,28 @@ public:
 	}
 };
 
+void getBoxesWithoutChildren(std::list<Box>& result, Box& box) {
+	Box* leftChild = box.getLeftChild();
+	Box* rightChild = box.getRightChild();
 
+	if (leftChild) {
+		getBoxesWithoutChildren(result, *leftChild);
+	}
+	else if (rightChild) {
+		getBoxesWithoutChildren(result, *rightChild);
+	}
+	else {
+		result.push_back(box);
+	}
+}
+
+//Calculates the main box of the scene
 Box calculateMainBox()
 {
 	Box box;
 	float Xmax = -HUGE_VALF; float Xmin = HUGE_VALF; float Ymax = -HUGE_VALF; float Ymin = HUGE_VALF; float Zmax = -HUGE_VALF; float Zmin = HUGE_VALF;
 	for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
 		Triangle currenttriangle = MyMesh.triangles[i];
-		box.addTriangle(currenttriangle);
 		Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
 		Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
 		Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
@@ -178,111 +197,74 @@ Box calculateMainBox()
 	return box;
 }
 
-int noTrianglesBox(static Box box) {
+//Calculates the number of trinagles in a box, and the triangles in a box
+int TrianglesInBox(Box &box) {
 	int count = 0;
+	box.removeTriangles();
 	for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
 		bool b0 = false; bool b1 = false; bool b2 = false;
 		Triangle currenttriangle = MyMesh.triangles[i];
 		Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
 		Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
 		Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
-		if (box.getMinX() < v0[0] < box.getMaxX() || box.getMinY() < v0[1] < box.getMaxY() || box.getMinZ() < v0[2] < box.getMaxZ() ) {
-			b0 = true;
+		if (box.getMinX() < v0[0] && box.getMaxX() > v0[0]) {
+			if (box.getMinY() < v0[1] && box.getMaxY() > v0[1]) {
+				if (box.getMinZ() < v0[2] && box.getMaxZ() > v0[2]) {
+					box.addTriangle(currenttriangle);
+				}
+			}
 		}
-		if (box.getMinX() < v1[0] < box.getMaxX() || box.getMinY() < v1[1] < box.getMaxY() || box.getMinZ() < v1[2] < box.getMaxZ()) {
-			b1 = true;
+		else if (box.getMinX() < v1[0] && box.getMaxX() > v1[0]) {
+			if (box.getMinY() < v1[1] && box.getMaxY() > v1[1]) {
+				if (box.getMinZ() < v1[2] && box.getMaxZ() > v1[2]) {
+					box.addTriangle(currenttriangle);
+				}
+			}
 		}
-		if (box.getMinX() < v2[0] < box.getMaxX() || box.getMinY() < v2[1] < box.getMaxY() || box.getMinZ() < v2[2] < box.getMaxZ()) {
-			b2 = true;
-		}
-		if (b0 || b1 || b2) {
-			box.addTriangle(currenttriangle);
-			count += 1;
-		}
-
-	}
-	return count;
-}
-
-void splitBox(Box parentBox, Box ChildBoxA, Box ChildBoxB, int maxNoTriangle) {
-	ChildBoxA;
-	ChildBoxB;
-	if (parentBox.getNoTriangles() > maxNoTriangle) {
-		float xlength = parentBox.getMaxX() - parentBox.getMinX();
-		float ylength = parentBox.getMaxY() - parentBox.getMinY();
-		float zlength = parentBox.getMaxZ() - parentBox.getMinZ();
-		if (xlength >= ylength && xlength >= zlength) {
-			printf("split over x");
-			ChildBoxA.setMinX(parentBox.getMinX());
-			ChildBoxA.setMaxX(parentBox.getMinX() + xlength / 2);
-			ChildBoxA.setMaxY(parentBox.getMaxY());
-			ChildBoxA.setMinY(parentBox.getMinY());
-			ChildBoxA.setMaxZ(parentBox.getMaxZ());
-			ChildBoxA.setMinZ(parentBox.getMinZ());
-			parentBox.setLeftChild(&ChildBoxA);
-			Box A;
-			Box B;
-			splitBox(ChildBoxA, A, B, maxNoTriangle);
-			ChildBoxB.setMinX(parentBox.getMinX() + xlength/2);
-			ChildBoxB.setMaxX(parentBox.getMaxX());
-			ChildBoxB.setMaxY(parentBox.getMaxY());
-			ChildBoxB.setMinY(parentBox.getMinY());
-			ChildBoxB.setMaxZ(parentBox.getMaxZ());
-			ChildBoxB.setMinZ(parentBox.getMinZ());
-			parentBox.setRighttChild(&ChildBoxB);
-			Box C;
-			Box D;
-			splitBox(ChildBoxB, C, D, maxNoTriangle);
-		}
-		else if (ylength >= xlength &&  ylength >= zlength) {
-			printf("split over y");
-			ChildBoxA.setMinX(parentBox.getMaxX());
-			ChildBoxA.setMaxX(parentBox.getMinX());
-			ChildBoxA.setMaxY(parentBox.getMaxY() + xlength / 2);
-			ChildBoxA.setMinY(parentBox.getMinY());
-			ChildBoxA.setMaxZ(parentBox.getMaxZ());
-			ChildBoxA.setMinZ(parentBox.getMinZ());
-			parentBox.setLeftChild(&ChildBoxA);
-			Box A;
-			Box B;
-			splitBox(ChildBoxA, A, B, maxNoTriangle);
-			ChildBoxB.setMinX(parentBox.getMaxX());
-			ChildBoxB.setMaxX(parentBox.getMinX());
-			ChildBoxB.setMaxY(parentBox.getMaxY());
-			ChildBoxB.setMinY(parentBox.getMinY() + xlength / 2);
-			ChildBoxB.setMaxZ(parentBox.getMaxZ());
-			ChildBoxB.setMinZ(parentBox.getMinZ());
-			parentBox.setRighttChild(&ChildBoxB);
-			Box C;
-			Box D;
-			splitBox(ChildBoxB, C, D, maxNoTriangle);
-		}
-		else if (zlength >= xlength && zlength >= ylength) {
-			printf("split over z");
-			ChildBoxA.setMinX(parentBox.getMaxX());
-			ChildBoxA.setMaxX(parentBox.getMinX());
-			ChildBoxA.setMaxY(parentBox.getMaxY());
-			ChildBoxA.setMinY(parentBox.getMinY());
-			ChildBoxA.setMaxZ(parentBox.getMaxZ() + xlength / 2);
-			ChildBoxA.setMinZ(parentBox.getMinZ());
-			parentBox.setLeftChild(&ChildBoxA);
-			Box A;
-			Box B;
-			splitBox(ChildBoxA, A, B, maxNoTriangle);
-			ChildBoxB.setMinX(parentBox.getMaxX());
-			ChildBoxB.setMaxX(parentBox.getMinX());
-			ChildBoxB.setMaxY(parentBox.getMaxY());
-			ChildBoxB.setMinY(parentBox.getMinY());
-			ChildBoxB.setMaxZ(parentBox.getMaxZ());
-			ChildBoxB.setMinZ(parentBox.getMinZ() + xlength / 2);
-			parentBox.setRighttChild(&ChildBoxB);
-			Box C;
-			Box D;
-			splitBox(ChildBoxB, C, D, maxNoTriangle);
+		else if (box.getMinX() < v2[0] && box.getMaxX() > v2[0]) {
+			if (box.getMinY() < v2[1] && box.getMaxY() > v2[1]) {
+				if (box.getMinZ() < v2[2] && box.getMaxZ() > v2[2]) {
+					box.addTriangle(currenttriangle);
+				}
+			}
 		}
 	}
+	return box.getNoTriangles();
 }
 
+//Splits up the box to small boxes with a maximum of maxNoTriangle triangles
+void splitBox(Box parentBox, int maxNoTriangle) {
+	int t = TrianglesInBox(parentBox);
+	std::cout << "PARENT: Xmax: " << parentBox.getMaxX() << " Xmin: " << parentBox.getMinX() << " Triangles: " << parentBox.getNoTriangles() << " \n ";
+	if (t < maxNoTriangle) {
+		std::cout << "no split required";
+		return;
+	}
+	Box b; Box c; Box d; Box e;
+	Box ChildBoxA; 
+	Box ChildBoxB;
+	float xlength = parentBox.getMaxX() - parentBox.getMinX();
+	ChildBoxA.setMaxX((parentBox.getMaxX() + parentBox.getMinX())/2);
+	ChildBoxA.setMinX(parentBox.getMinX());
+	ChildBoxA.setMaxY(parentBox.getMaxY());
+	ChildBoxA.setMinY(parentBox.getMinY());
+	ChildBoxA.setMaxZ(parentBox.getMaxZ());
+	ChildBoxA.setMinZ(parentBox.getMinZ());
+
+	ChildBoxB.setMaxX(parentBox.getMaxX());
+	ChildBoxB.setMinX((parentBox.getMaxX() + parentBox.getMinX()) / 2);
+	ChildBoxB.setMaxY(parentBox.getMaxY());
+	ChildBoxB.setMinY(parentBox.getMinY());
+	ChildBoxB.setMaxZ(parentBox.getMaxZ());
+	ChildBoxB.setMinZ(parentBox.getMinZ());
+	parentBox.setLeftChild(&ChildBoxA);
+	parentBox.setRighttChild(&ChildBoxB);
+	
+	splitBox(ChildBoxA,  maxNoTriangle);
+	splitBox(ChildBoxB,  maxNoTriangle);
+}
+
+//Bool ray intersect box
 bool intersectBox(const Vec3Df &origin, const Vec3Df &direction, Box mainbox)
 {
 	float Xmax = mainbox.getMaxX();
@@ -321,10 +303,8 @@ bool intersectBox(const Vec3Df &origin, const Vec3Df &direction, Box mainbox)
 	if (tout < 0) {
 		return false;
 	}
-	std::cout << "Tin:" << tin << " Tout: " << tout;
 	return true;
 }
-
 
 //use this function for any preprocessing of the mesh.
 void init()
@@ -344,18 +324,19 @@ void init()
 	//here, we set it to the current location of the camera
 	MyLightPositions.push_back(MyCameraPosition);
 
-	MyMesh.loadMesh("cube.obj", true);
+	MyMesh.loadMesh("teapot.obj", true);
 	Kd.resize(MyMesh.vertices.size(), Vec3Df(0.5, 0.5, 0.5));
 	Ks.resize(MyMesh.vertices.size(), Vec3Df(0.5, 0.5, 0.5));
 	Shininess.resize(MyMesh.vertices.size(), 3);
 	Box mainbox = calculateMainBox();
 	Box a;
 	Box b;
-	int maxTrianglesInBox = 6;
-	splitBox(mainbox, a, b, maxTrianglesInBox);
+	int maxTrianglesInBox = 1000;
+	std::cout << "init: " << TrianglesInBox(mainbox);
+	splitBox(mainbox,  maxTrianglesInBox);
 }
 
-
+//Bool ray intersect plane
 bool intersectPlane(const Vec3Df &normal, const Vec3Df &direction, const Vec3Df &origin, float &distance, float &t, Vec3Df &planepos)
 {
 	// t = (dist - dot(orig, normal) / dot(direction, normal)
@@ -371,6 +352,7 @@ bool intersectPlane(const Vec3Df &normal, const Vec3Df &direction, const Vec3Df 
 	return false;
 }
 
+//Bool ray intersect triangle
 bool rayTriangleIntersect(Vec3Df &planepos, Triangle &triangle, Vec3Df &trianglepos, Vec3Df &normal) {
 
 	Vec3Df bary;
@@ -400,20 +382,18 @@ bool rayTriangleIntersect(Vec3Df &planepos, Triangle &triangle, Vec3Df &triangle
 	}
 }
 
-
-
+//Returns the center of a triangle
 Vec3Df getTriangleCenter(const Vec3Df &edge1, const Vec3Df &edge2, const Vec3Df &edge3) {
 	Vec3Df centerOfTriangle = (edge1 + edge2 + edge3 / 3);
 	return centerOfTriangle;
 }
 
-//return the color of your pixel.
+//Main raytracer
 Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 {
-	int maxTrianglesInBox = 6;
+	int maxTrianglesInBox = 1;
 	Vec3Df direction = dest - origin;
 	Box mainbox = calculateMainBox();
-	std::cout << mainbox.getMaxX();
 	if (intersectBox(origin, direction, mainbox)) {
 		std::cout << "Box hit!";
 			for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
@@ -447,6 +427,101 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 	return Vec3Df(dest[0], dest[1], dest[2]);
 }
 
+void drawBox(static Box &mainbox) {
+	glLineWidth(2.5);
+	glColor3f(1.0, 0.0, 0.0);
+	glBegin(GL_LINES);
+	glVertex3f(mainbox.getMaxX(), mainbox.getMinY(), mainbox.getMinZ());
+	glVertex3f(mainbox.getMinX(), mainbox.getMinY(), mainbox.getMinZ());
+	glEnd();
+
+	glLineWidth(2.5);
+	glColor3f(1.0, 0.0, 0.0);
+	glBegin(GL_LINES);
+	glVertex3f(mainbox.getMinX(), mainbox.getMaxY(), mainbox.getMinZ());
+	glVertex3f(mainbox.getMinX(), mainbox.getMinY(), mainbox.getMinZ());
+	glEnd();
+
+	glLineWidth(2.5);
+	glColor3f(1.0, 0.0, 0.0);
+	glBegin(GL_LINES);
+	glVertex3f(mainbox.getMinX(), mainbox.getMinY(), mainbox.getMaxZ());
+	glVertex3f(mainbox.getMinX(), mainbox.getMinY(), mainbox.getMinZ());
+	glEnd();
+
+	glLineWidth(2.5);
+	glColor3f(1.0, 0.0, 0.0);
+	glBegin(GL_LINES);
+	glVertex3f(mainbox.getMinX(), mainbox.getMaxY(), mainbox.getMinZ());
+	glVertex3f(mainbox.getMaxX(), mainbox.getMaxY(), mainbox.getMinZ());
+	glEnd();
+
+	glLineWidth(2.5);
+	glColor3f(1.0, 0.0, 0.0);
+	glBegin(GL_LINES);
+	glVertex3f(mainbox.getMinX(), mainbox.getMaxY(), mainbox.getMinZ());
+	glVertex3f(mainbox.getMinX(), mainbox.getMaxY(), mainbox.getMaxZ());
+	glEnd();
+
+
+	glLineWidth(2.5);
+	glColor3f(1.0, 0.0, 0.0);
+	glBegin(GL_LINES);
+	glVertex3f(mainbox.getMinX(), mainbox.getMinY(), mainbox.getMaxZ());
+	glVertex3f(mainbox.getMinX(), mainbox.getMaxY(), mainbox.getMaxZ());
+	glEnd();
+
+
+	glLineWidth(2.5);
+	glColor3f(1.0, 0.0, 0.0);
+	glBegin(GL_LINES);
+	glVertex3f(mainbox.getMaxX(), mainbox.getMinY(), mainbox.getMinZ());
+	glVertex3f(mainbox.getMaxX(), mainbox.getMinY(), mainbox.getMaxZ());
+	glEnd();
+
+
+
+	glLineWidth(2.5);
+	glColor3f(1.0, 0.0, 0.0);
+	glBegin(GL_LINES);
+	glVertex3f(mainbox.getMaxX(), mainbox.getMinY(), mainbox.getMinZ());
+	glVertex3f(mainbox.getMaxX(), mainbox.getMaxY(), mainbox.getMinZ());
+	glEnd();
+
+
+
+	glLineWidth(2.5);
+	glColor3f(1.0, 0.0, 0.0);
+	glBegin(GL_LINES);
+	glVertex3f(mainbox.getMinX(), mainbox.getMinY(), mainbox.getMaxZ());
+	glVertex3f(mainbox.getMaxX(), mainbox.getMinY(), mainbox.getMaxZ());
+	glEnd();
+
+
+	glLineWidth(2.5);
+	glColor3f(1.0, 0.0, 0.0);
+	glBegin(GL_LINES);
+	glVertex3f(mainbox.getMaxX(), mainbox.getMaxY(), mainbox.getMaxZ());
+	glVertex3f(mainbox.getMaxX(), mainbox.getMinY(), mainbox.getMaxZ());
+	glEnd();
+
+
+	glLineWidth(2.5);
+	glColor3f(1.0, 0.0, 0.0);
+	glBegin(GL_LINES);
+	glVertex3f(mainbox.getMinX(), mainbox.getMaxY(), mainbox.getMaxZ());
+	glVertex3f(mainbox.getMaxX(), mainbox.getMaxY(), mainbox.getMaxZ());
+	glEnd();
+
+
+	glLineWidth(2.5);
+	glColor3f(1.0, 0.0, 0.0);
+	glBegin(GL_LINES);
+	glVertex3f(mainbox.getMaxX(), mainbox.getMaxY(), mainbox.getMinZ());
+	glVertex3f(mainbox.getMaxX(), mainbox.getMaxY(), mainbox.getMaxZ());
+	glEnd();
+}
+//Debug draw
 void yourDebugDraw()
 {
 	//draw open gl debug stuff
@@ -481,6 +556,22 @@ void yourDebugDraw()
 	glVertex3fv(MyLightPositions[0].pointer());
 	glEnd();
 	glPopAttrib();
+
+
+	//Draw mainBox
+	std::list<Box> resultList;
+	Box mainbox = calculateMainBox();
+	getBoxesWithoutChildren(resultList, mainbox);
+	std::cout << resultList.size();
+	drawBox(mainbox);
+	for (std::list<Box>::const_iterator iter = resultList.begin(); iter != resultList.end(); iter++) {
+		Box box = *iter;
+		drawBox(box);
+	}
+
+
+
+
 	//draw whatever else you want...
 	////glutSolidSphere(1,10,10);
 	////allows you to draw a sphere at the origin.
@@ -488,7 +579,6 @@ void yourDebugDraw()
 	////if you produce a sphere renderer, this 
 	////triangulated sphere is nice for the preview
 }
-
 
 //yourKeyboardFunc is used to deal with keyboard input.
 //t is the character that was pressed
@@ -523,6 +613,8 @@ void yourKeyboardFunc(char t, int x, int y, const Vec3Df & rayOrigin, const Vec3
 	std::cout<<t<<" pressed! The mouse was in location "<<x<<","<<y<<"!"<<std::endl;	
 }
 
+
+//-----------------
 Vec3Df phongDiffuse(const Vec3Df & vertexPos, Vec3Df & normal, const Vec3Df & lightPos, unsigned int index)
 {
 	Vec3Df l = lightPos - vertexPos;
