@@ -256,8 +256,9 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 				for (int i = 0; i < MyLightPositions.size(); i++) {
 						Vec3Df shadowDest = MyLightPositions[i].p;	//light source
 						Vec3Df shadowOrig = getTriangleCenter(v0, v1, v2);	//triangle center
-						Shade(shadowOrig, shadowDest, normal, t, planepos, distance, currenttriangle);
-
+						if (Shade(shadowOrig, shadowDest, normal, t, planepos, distance, currenttriangle)) {
+							return Vec3Df(0, 0, 0);
+						}
 				}
 
 
