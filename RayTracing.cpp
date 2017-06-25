@@ -1,5 +1,5 @@
-#include "stdafx.h"
 #include <stdio.h>
+#include "stdafx.h"
 #ifdef WIN32
 #include <windows.h>
 #endif
@@ -7,6 +7,7 @@
 #include <array>
 #include <iostream>
 #include <list>
+#include <math.h>
 #include "box.h"
 #include "raytracing.h"
 
@@ -36,15 +37,21 @@ void getBoxesWithoutChildren(std::list<Box>& result, Box& box) {
 }
 
 //Calculates the main box of the scene
-Box calculateMainBox()
+void calculateMainBox(Box& box)
 {
-	Box box;
-	float Xmax = -HUGE_VALF; float Xmin = HUGE_VALF; float Ymax = -HUGE_VALF; float Ymin = HUGE_VALF; float Zmax = -HUGE_VALF; float Zmin = HUGE_VALF;
-	for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
-		Triangle currenttriangle = MyMesh.triangles[i];
-		Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
-		Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
-		Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
+	float Xmax = -HUGE_VALF;
+    float Xmin = HUGE_VALF;
+    float Ymax = -HUGE_VALF;
+    float Ymin = HUGE_VALF;
+    float Zmax = -HUGE_VALF;
+    float Zmin = HUGE_VALF;
+	
+    for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
+		
+        Triangle* currentTriangle = &(MyMesh.triangles[i]);
+		Vec3Df v0 = MyMesh.vertices[currentTriangle->v[0]].p;
+		Vec3Df v1 = MyMesh.vertices[currentTriangle->v[1]].p;
+		Vec3Df v2 = MyMesh.vertices[currentTriangle->v[2]].p;
 		if (v0[0] > Xmax) {
 			Xmax = v0[0];
 		}
@@ -100,6 +107,7 @@ Box calculateMainBox()
 		if (v2[2] < Zmin) {
 			Zmin = v2[2];
 		}
+		
 		box.setMaxX(Xmax);
 		box.setMinX(Xmin);
 		box.setMaxY(Ymax);
@@ -107,20 +115,23 @@ Box calculateMainBox()
 		box.setMaxZ(Zmax);
 		box.setMinZ(Zmin);
 	}
-	return box;
 }
+	
 
 //Calculates the number of trinagles in a box, and the triangles in a box
-int TrianglesInBox(Box &box) {
+int TrianglesInBox(Box& box) {
 	int count = 0;
 	box.removeTriangles();
+    
 	for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
 		bool b0 = false; bool b1 = false; bool b2 = false;
+        
 		Triangle* currentTriangle = &MyMesh.triangles[i];
 		Vec3Df v0 = MyMesh.vertices[currentTriangle->v[0]].p;
 		Vec3Df v1 = MyMesh.vertices[currentTriangle->v[1]].p;
 		Vec3Df v2 = MyMesh.vertices[currentTriangle->v[2]].p;
-		if (box.getMinX() < v0[0] && box.getMaxX() > v0[0]) {
+		
+        if (box.getMinX() < v0[0] && box.getMaxX() > v0[0]) {
 			if (box.getMinY() < v0[1] && box.getMaxY() > v0[1]) {
 				if (box.getMinZ() < v0[2] && box.getMaxZ() > v0[2]) {
 					box.addTriangle(currentTriangle);
@@ -142,39 +153,51 @@ int TrianglesInBox(Box &box) {
 			}
 		}
 	}
+	
 	return box.getNoTriangles();
 }
 
 //Splits up the box to small boxes with a maximum of maxNoTriangle triangles
-void splitBox(Box parentBox, int maxNoTriangle) {
-	int t = TrianglesInBox(parentBox);
-	std::cout << "PARENT: Xmax: " << parentBox.getMaxX() << " Xmin: " << parentBox.getMinX() << " Triangles: " << parentBox.getNoTriangles() << " \n ";
-	if (t < maxNoTriangle) {
-		std::cout << "no split required";
-		return;
-	}
-	Box b; Box c; Box d; Box e;
-	Box ChildBoxA; 
-	Box ChildBoxB;
-	float xlength = parentBox.getMaxX() - parentBox.getMinX();
-	ChildBoxA.setMaxX((parentBox.getMaxX() + parentBox.getMinX())/2);
-	ChildBoxA.setMinX(parentBox.getMinX());
-	ChildBoxA.setMaxY(parentBox.getMaxY());
-	ChildBoxA.setMinY(parentBox.getMinY());
-	ChildBoxA.setMaxZ(parentBox.getMaxZ());
-	ChildBoxA.setMinZ(parentBox.getMinZ());
+void splitBox(Box& parentBox, int maxNoTriangle) {
+    if (&parentBox) {
+        int t = TrianglesInBox(parentBox);
+        std::cout << "PARENT: Xmax: " << parentBox.getMaxX() << " Xmin: " << parentBox.getMinX()
+                  << " Triangles: " << parentBox.getNoTriangles() << std::endl;
+        
+        if (t < maxNoTriangle) {
+            std::cout << "no split required";
+            return;
+        }
+        
+        Box b;
+        Box c;
+        Box d;
+        Box e;
+        
+        Box ChildBoxA; 
+        Box ChildBoxB;
+        
+        float xlength = parentBox.getMaxX() - parentBox.getMinX();
+        ChildBoxA.setMaxX((parentBox.getMaxX() + parentBox.getMinX())/2);
+        ChildBoxA.setMinX(parentBox.getMinX());
+        ChildBoxA.setMaxY(parentBox.getMaxY());
+        ChildBoxA.setMinY(parentBox.getMinY());
+        ChildBoxA.setMaxZ(parentBox.getMaxZ());
+        ChildBoxA.setMinZ(parentBox.getMinZ());
 
-	ChildBoxB.setMaxX(parentBox.getMaxX());
-	ChildBoxB.setMinX((parentBox.getMaxX() + parentBox.getMinX()) / 2);
-	ChildBoxB.setMaxY(parentBox.getMaxY());
-	ChildBoxB.setMinY(parentBox.getMinY());
-	ChildBoxB.setMaxZ(parentBox.getMaxZ());
-	ChildBoxB.setMinZ(parentBox.getMinZ());
-	parentBox.setLeftChild(&ChildBoxA);
-	parentBox.setRightChild(&ChildBoxB);
-	
-	splitBox(ChildBoxA,  maxNoTriangle);
-	splitBox(ChildBoxB,  maxNoTriangle);
+        ChildBoxB.setMaxX(parentBox.getMaxX());
+        ChildBoxB.setMinX((parentBox.getMaxX() + parentBox.getMinX()) / 2);
+        ChildBoxB.setMaxY(parentBox.getMaxY());
+        ChildBoxB.setMinY(parentBox.getMinY());
+        ChildBoxB.setMaxZ(parentBox.getMaxZ());
+        ChildBoxB.setMinZ(parentBox.getMinZ());
+        
+        parentBox.setLeftChild(&ChildBoxA);
+        parentBox.setRightChild(&ChildBoxB);
+        
+        splitBox(ChildBoxA,  maxNoTriangle);
+        splitBox(ChildBoxB,  maxNoTriangle);
+    }
 }
 
 //Bool ray intersect box
@@ -200,15 +223,15 @@ bool intersectBox(const Vec3Df &origin, const Vec3Df &direction, Box mainbox)
 
 	float tzmax = (Zmax - origin[2]) / direction[2];
 
-	float tinx = min(txmin, txmax);
-	float toutx = max(txmin, txmax);
-	float tiny = min(tymin, tymax);
-	float touty = max(tymin, tymax);
-	float tinz = min(tzmin, tzmax);
-	float toutz = max(tzmin, tzmax);
+	float tinx = fmin(txmin, txmax);
+	float toutx = fmax(txmin, txmax);
+	float tiny = fmin(tymin, tymax);
+	float touty = fmax(tymin, tymax);
+	float tinz = fmin(tzmin, tzmax);
+	float toutz = fmax(tzmin, tzmax);
 
-	float tin = max(max(tinx, tiny),max(tiny, tinz));
-	float tout = min(min(toutx, touty), min(touty, toutz));
+	float tin = fmax(fmax(tinx, tiny),fmax(tiny, tinz));
+	float tout = fmin(fmin(toutx, touty), fmin(touty, toutz));
 
 	if (tin > tout) {
 		return false;
@@ -239,9 +262,16 @@ void init()
 
 	MyMesh.loadMesh("teapot.obj", true);
 	Kd.resize(MyMesh.vertices.size(), Vec3Df(0.5, 0.5, 0.5));
-	Ks.resize(MyMesh.vertices.size(), Vec3Df(0.5, 0.5, 0.5));
-	Shininess.resize(MyMesh.vertices.size(), 3);
-	Box mainbox = calculateMainBox();
+    std::cout << "MyMesh.vertices.size(): " << MyMesh.vertices.size() << std::endl;
+	
+    Ks.resize(MyMesh.vertices.size(), Vec3Df(0.5, 0.5, 0.5));
+    std::cout << "MyMesh.vertices.size(): " << MyMesh.vertices.size() << std::endl;
+	
+    Shininess.resize(MyMesh.vertices.size(), 3);
+    std::cout << "MyMesh.vertices.size(): " << MyMesh.vertices.size() << std::endl;
+
+	Box mainbox;
+    calculateMainBox(mainbox);
 	Box a;
 	Box b;
 	int maxTrianglesInBox = 1000;
@@ -306,7 +336,8 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 {
 	int maxTrianglesInBox = 1;
 	Vec3Df direction = dest - origin;
-	Box mainbox = calculateMainBox();
+	Box mainbox;
+    calculateMainBox(mainbox);
 	if (intersectBox(origin, direction, mainbox)) {
 		std::cout << "Box hit!";
 			for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
@@ -451,7 +482,8 @@ void yourDebugDraw()
 		glVertex3fv(MyLightPositions[i].pointer());
 	glEnd();
 	glPopAttrib();//restore all GL attributes
-	//The Attrib commands maintain the state. 
+	
+    //The Attrib commands maintain the state. 
 	//e.g., even though inside the two calls, we set
 	//the color to white, it will be reset to the previous 
 	//state after the pop.
@@ -470,13 +502,15 @@ void yourDebugDraw()
 	glEnd();
 	glPopAttrib();
 
-
 	//Draw mainBox
 	std::list<Box> resultList;
-	Box mainbox = calculateMainBox();
+	Box mainbox;
+    calculateMainBox(mainbox);
 	getBoxesWithoutChildren(resultList, mainbox);
-	std::cout << resultList.size();
-	drawBox(mainbox);
+
+    std::cout << resultList.size();
+	
+    drawBox(mainbox);
 	for (std::list<Box>::const_iterator iter = resultList.begin(); iter != resultList.end(); iter++) {
 		Box box = *iter;
 		drawBox(box);
