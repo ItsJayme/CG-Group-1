@@ -107,7 +107,7 @@ public:
 	}
 };
 
-void getBoxesWithoutChildren(std::list<Box>& result, Box& box) {
+void getBoxesWithoutChildren(std::list<Box> &result,Box box) {
 	Box* leftChild = box.getLeftChild();
 	Box* rightChild = box.getRightChild();
 
@@ -233,9 +233,8 @@ int TrianglesInBox(Box &box) {
 }
 
 //Splits up the box to small boxes with a maximum of maxNoTriangle triangles
-void splitBox(Box parentBox, int maxNoTriangle) {
+void splitBox(Box &parentBox, int maxNoTriangle) {
 	int t = TrianglesInBox(parentBox);
-	std::cout << "PARENT: Xmax: " << parentBox.getMaxX() << " Xmin: " << parentBox.getMinX() << " Triangles: " << parentBox.getNoTriangles() << " \n ";
 	if (t < maxNoTriangle) {
 		std::cout << "no split required";
 		return;
@@ -273,7 +272,6 @@ void splitBox(Box parentBox, int maxNoTriangle) {
 		ChildBoxB.setMinZ((parentBox.getMaxZ() + parentBox.getMinZ()) / 2);
 	}
 	parentBox.setLeftChild(&ChildBoxA);
-
 	parentBox.setRighttChild(&ChildBoxB);
 
 
@@ -321,133 +319,6 @@ bool intersectBox(const Vec3Df &origin, const Vec3Df &direction, Box mainbox)
 		return false;
 	}
 	return true;
-}
-
-//use this function for any preprocessing of the mesh.
-void init()
-{
-	//load the mesh file
-	//please realize that not all OBJ files will successfully load.
-	//Nonetheless, if they come from Blender, they should, if they 
-	//are exported as WavefrontOBJ.
-	//PLEASE ADAPT THE LINE BELOW TO THE FULL PATH OF THE dodgeColorTest.obj
-	//model, e.g., "C:/temp/myData/GraphicsIsFun/dodgeColorTest.obj", 
-	//otherwise the application will not load properly
-
-	MyMesh.computeVertexNormals();
-
-	//one first move: initialize the first light source
-	//at least ONE light source has to be in the scene!!!
-	//here, we set it to the current location of the camera
-	MyLightPositions.push_back(MyCameraPosition);
-
-	MyMesh.loadMesh("teapot.obj", true);
-	Kd.resize(MyMesh.vertices.size(), Vec3Df(0.5, 0.5, 0.5));
-	Ks.resize(MyMesh.vertices.size(), Vec3Df(0.5, 0.5, 0.5));
-	Shininess.resize(MyMesh.vertices.size(), 3);
-	Box mainbox = calculateMainBox();
-	
-	Box a;
-	Box b;
-	mainbox.setLeftChild(&a);
-	mainbox.setRighttChild(&b);
-	std::list<Box> resultList;
-	getBoxesWithoutChildren(resultList, mainbox);
-	std::cout << resultList.size();
-
-	int maxTrianglesInBox = 10000;
-	splitBox(mainbox,  maxTrianglesInBox);
-}
-
-//Bool ray intersect plane
-bool intersectPlane(const Vec3Df &normal, const Vec3Df &direction, const Vec3Df &origin, float &distance, float &t, Vec3Df &planepos)
-{
-	// t = (dist - dot(orig, normal) / dot(direction, normal)
-	float denominator = (distance - Vec3Df::dotProduct(origin, normal));
-	if (Vec3Df::dotProduct(direction,normal) != 0) {
-		float numerator = Vec3Df::dotProduct(direction, normal);
-		t = denominator / numerator;
-		planepos = origin + t * direction;
-		if (t >= 0) {
-			return true;
-		}
-	}
-	return false;
-}
-
-//Bool ray intersect triangle
-bool rayTriangleIntersect(Vec3Df &planepos, Triangle &triangle, Vec3Df &trianglepos, Vec3Df &normal) {
-
-	Vec3Df bary;
-	Vec3Df a = MyMesh.vertices[triangle.v[0]].p;
-	Vec3Df b = MyMesh.vertices[triangle.v[1]].p;
-	Vec3Df c = MyMesh.vertices[triangle.v[2]].p;
-
-	float areaABC = Vec3Df::dotProduct(normal, Vec3Df::crossProduct((b - a), (c - a)));
-	float areaPBC = Vec3Df::dotProduct(normal, Vec3Df::crossProduct((b - planepos), (c - planepos)));
-	float areaPCA = Vec3Df::dotProduct(normal, Vec3Df::crossProduct((c - planepos), (a - planepos)));
-
-	bary[0] = areaPBC / areaABC;
-	bary[1] = areaPCA / areaABC;
-	bary[2] = 1 - bary[0] - bary[1];
-
-	if ((bary[0] < 0) || (bary[0] > 1)) {
-		return false;
-	}
-	if ((bary[1] < 0) || (bary[1] > 1)) {
-		return false;
-	}
-	if (bary[0] + bary[1] > 1) {
-		return false;
-	}
-	else {
-		return true;
-	}
-}
-
-//Returns the center of a triangle
-Vec3Df getTriangleCenter(const Vec3Df &edge1, const Vec3Df &edge2, const Vec3Df &edge3) {
-	Vec3Df centerOfTriangle = (edge1 + edge2 + edge3 / 3);
-	return centerOfTriangle;
-}
-
-//Main raytracer
-Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
-{
-	int maxTrianglesInBox = 1;
-	Vec3Df direction = dest - origin;
-	Box mainbox = calculateMainBox();
-	if (intersectBox(origin, direction, mainbox)) {
-		std::cout << "Box hit!";
-			for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
-				Triangle currenttriangle = MyMesh.triangles[i];
-
-				Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
-				Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
-				Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
-
-				Vec3Df edge12 = v0 - v1;
-				Vec3Df edge13 = v0 - v2;
-				Vec3Df normal = Vec3Df::crossProduct(edge12, edge13);
-				normal.normalize();
-
-				float distance = Vec3Df::dotProduct(normal, v0);
-				Vec3Df planepos;
-				float t;
-
-				if (intersectPlane(normal, direction, origin, distance, t, planepos)) {
-					std::cout << "Plane hit!";
-
-					Vec3Df trianglepos;
-					if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) {
-						std::cout << "Triangle hit!";
-					}
-				}
-
-			}
-	}
-
-	return Vec3Df(dest[0], dest[1], dest[2]);
 }
 
 void drawBox(static Box &mainbox) {
@@ -544,6 +415,128 @@ void drawBox(static Box &mainbox) {
 	glVertex3f(mainbox.getMaxX(), mainbox.getMaxY(), mainbox.getMaxZ());
 	glEnd();
 }
+//use this function for any preprocessing of the mesh.
+void init()
+{
+	//load the mesh file
+	//please realize that not all OBJ files will successfully load.
+	//Nonetheless, if they come from Blender, they should, if they 
+	//are exported as WavefrontOBJ.
+	//PLEASE ADAPT THE LINE BELOW TO THE FULL PATH OF THE dodgeColorTest.obj
+	//model, e.g., "C:/temp/myData/GraphicsIsFun/dodgeColorTest.obj", 
+	//otherwise the application will not load properly
+
+	MyMesh.computeVertexNormals();
+
+	//one first move: initialize the first light source
+	//at least ONE light source has to be in the scene!!!
+	//here, we set it to the current location of the camera
+	MyLightPositions.push_back(MyCameraPosition);
+
+	MyMesh.loadMesh("teapot.obj", true);
+	Kd.resize(MyMesh.vertices.size(), Vec3Df(0.5, 0.5, 0.5));
+	Ks.resize(MyMesh.vertices.size(), Vec3Df(0.5, 0.5, 0.5));
+	Shininess.resize(MyMesh.vertices.size(), 3);
+	Box mainbox = calculateMainBox();
+	splitBox(mainbox, 1000);
+	Box box = *(mainbox.getLeftChild());
+	std::cout << box.getMaxX();
+	std::list<Box> list;
+	getBoxesWithoutChildren(list, mainbox);
+	std::cout << "size" <<  list.size();
+}
+
+//Bool ray intersect plane
+bool intersectPlane(const Vec3Df &normal, const Vec3Df &direction, const Vec3Df &origin, float &distance, float &t, Vec3Df &planepos)
+{
+	// t = (dist - dot(orig, normal) / dot(direction, normal)
+	float denominator = (distance - Vec3Df::dotProduct(origin, normal));
+	if (Vec3Df::dotProduct(direction,normal) != 0) {
+		float numerator = Vec3Df::dotProduct(direction, normal);
+		t = denominator / numerator;
+		planepos = origin + t * direction;
+		if (t >= 0) {
+			return true;
+		}
+	}
+	return false;
+}
+
+//Bool ray intersect triangle
+bool rayTriangleIntersect(Vec3Df &planepos, Triangle &triangle, Vec3Df &trianglepos, Vec3Df &normal) {
+
+	Vec3Df bary;
+	Vec3Df a = MyMesh.vertices[triangle.v[0]].p;
+	Vec3Df b = MyMesh.vertices[triangle.v[1]].p;
+	Vec3Df c = MyMesh.vertices[triangle.v[2]].p;
+
+	float areaABC = Vec3Df::dotProduct(normal, Vec3Df::crossProduct((b - a), (c - a)));
+	float areaPBC = Vec3Df::dotProduct(normal, Vec3Df::crossProduct((b - planepos), (c - planepos)));
+	float areaPCA = Vec3Df::dotProduct(normal, Vec3Df::crossProduct((c - planepos), (a - planepos)));
+
+	bary[0] = areaPBC / areaABC;
+	bary[1] = areaPCA / areaABC;
+	bary[2] = 1 - bary[0] - bary[1];
+
+	if ((bary[0] < 0) || (bary[0] > 1)) {
+		return false;
+	}
+	if ((bary[1] < 0) || (bary[1] > 1)) {
+		return false;
+	}
+	if (bary[0] + bary[1] > 1) {
+		return false;
+	}
+	else {
+		return true;
+	}
+}
+
+//Returns the center of a triangle
+Vec3Df getTriangleCenter(const Vec3Df &edge1, const Vec3Df &edge2, const Vec3Df &edge3) {
+	Vec3Df centerOfTriangle = (edge1 + edge2 + edge3 / 3);
+	return centerOfTriangle;
+}
+
+//Main raytracer
+Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
+{
+	int maxTrianglesInBox = 1;
+	Vec3Df direction = dest - origin;
+	Box mainbox = calculateMainBox();
+	if (intersectBox(origin, direction, mainbox)) {
+		std::cout << "Box hit!";
+			for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
+				Triangle currenttriangle = MyMesh.triangles[i];
+
+				Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
+				Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
+				Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
+
+				Vec3Df edge12 = v0 - v1;
+				Vec3Df edge13 = v0 - v2;
+				Vec3Df normal = Vec3Df::crossProduct(edge12, edge13);
+				normal.normalize();
+
+				float distance = Vec3Df::dotProduct(normal, v0);
+				Vec3Df planepos;
+				float t;
+
+				if (intersectPlane(normal, direction, origin, distance, t, planepos)) {
+					std::cout << "Plane hit!";
+
+					Vec3Df trianglepos;
+					if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) {
+						std::cout << "Triangle hit!";
+					}
+				}
+
+			}
+	}
+
+	return Vec3Df(dest[0], dest[1], dest[2]);
+}
+
 //Debug draw
 void yourDebugDraw()
 {
@@ -580,18 +573,8 @@ void yourDebugDraw()
 	glEnd();
 	glPopAttrib();
 
-
-	//Draw mainBox
-	std::list<Box> resultList;
 	Box mainbox = calculateMainBox();
-	getBoxesWithoutChildren(resultList, mainbox);
 	drawBox(mainbox);
-	for (std::list<Box>::const_iterator iter = resultList.begin(); iter != resultList.end(); iter++) {
-		Box box = *iter;
-		drawBox(box);
-	}
-
-
 
 
 	//draw whatever else you want...
