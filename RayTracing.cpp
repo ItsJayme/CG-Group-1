@@ -8,6 +8,7 @@
 #include <iostream>
 #include <list>
 #include <array>
+#include <exception>
 
 
 //temporary variables
@@ -19,15 +20,17 @@ std::vector<Vec3Df> Kd;//diffuse coefficient per vertex
 std::vector<Vec3Df> Ks;//specularity coefficient per vertex
 std::vector<float> Shininess;//exponent for phong and blinn-phong specularities
 
-//Box class
+							 //Box class
 class Box {
 	std::vector<Triangle> t;
 	float values[6];
 
-	Box* leftChild;
-	Box* rightChild;
+	
 public:
 	Box();
+
+	Box* leftChild;
+	Box* rightChild;
 
 	int getNoTriangles() {
 		return t.size();
@@ -107,14 +110,18 @@ public:
 	}
 };
 
-void getBoxesWithoutChildren(std::list<Box> &result,Box box) {
+Box BossBox;
+
+void getBoxesWithoutChildren(std::vector<Box> &result, Box box) {
+    
 	Box* leftChild = box.getLeftChild();
 	Box* rightChild = box.getRightChild();
+	std::cout << leftChild;
 
-	if (leftChild) {
+	if (leftChild->getMaxX()) {
 		getBoxesWithoutChildren(result, *leftChild);
 	}
-	else if (rightChild) {
+	else if (rightChild->getMaxX()) {
 		getBoxesWithoutChildren(result, *rightChild);
 	}
 	else {
@@ -236,11 +243,10 @@ int TrianglesInBox(Box &box) {
 void splitBox(Box &parentBox, int maxNoTriangle) {
 	int t = TrianglesInBox(parentBox);
 	if (t < maxNoTriangle) {
-		std::cout << "no split required";
 		return;
 	}
 	Box b; Box c; Box d; Box e;
-	Box ChildBoxA; 
+	Box ChildBoxA;
 	Box ChildBoxB;
 	float xlength = parentBox.getMaxX() - parentBox.getMinX();
 	float ylength = parentBox.getMaxY() - parentBox.getMinY();
@@ -266,13 +272,14 @@ void splitBox(Box &parentBox, int maxNoTriangle) {
 	else if (ylength >= xlength && ylength >= zlength) {
 		ChildBoxA.setMaxY((parentBox.getMaxY() + parentBox.getMinY()) / 2);
 		ChildBoxB.setMinY((parentBox.getMaxY() + parentBox.getMinY()) / 2);
+		std::cout << " MaxX: " << ChildBoxA.getMaxX() << " MinX: " << ChildBoxA.getMinX() << " MaxY: " << ChildBoxA.getMaxY() << " MinY: " << ChildBoxA.getMinY() << " MaxZ: " << ChildBoxA.getMaxZ() << " MinZ: " << ChildBoxA.getMinZ();
 	}
 	else if (zlength >= xlength && zlength >= ylength) {
 		ChildBoxA.setMaxZ((parentBox.getMaxZ() + parentBox.getMinZ()) / 2);
 		ChildBoxB.setMinZ((parentBox.getMaxZ() + parentBox.getMinZ()) / 2);
 	}
-	parentBox.setLeftChild(&ChildBoxA);
-	parentBox.setRighttChild(&ChildBoxB);
+	parentBox.leftChild = &ChildBoxA;
+	parentBox.rightChild = &ChildBoxB;
 
 
 	splitBox(ChildBoxA, maxNoTriangle);
@@ -291,7 +298,7 @@ bool intersectBox(const Vec3Df &origin, const Vec3Df &direction, Box mainbox)
 
 	//t = (xmin - Ox) / dxmin
 	float txmin = (Xmin - origin[0]) / direction[0];
-	
+
 	float txmax = (Xmax - origin[0]) / direction[0];
 
 	float tymin = (Ymin - origin[1]) / direction[1];
@@ -309,7 +316,7 @@ bool intersectBox(const Vec3Df &origin, const Vec3Df &direction, Box mainbox)
 	float tinz = min(tzmin, tzmax);
 	float toutz = max(tzmin, tzmax);
 
-	float tin = max(max(tinx, tiny),max(tiny, tinz));
+	float tin = max(max(tinx, tiny), max(tiny, tinz));
 	float tout = min(min(toutx, touty), min(touty, toutz));
 
 	if (tin > tout) {
@@ -425,7 +432,7 @@ void init()
 	//PLEASE ADAPT THE LINE BELOW TO THE FULL PATH OF THE dodgeColorTest.obj
 	//model, e.g., "C:/temp/myData/GraphicsIsFun/dodgeColorTest.obj", 
 	//otherwise the application will not load properly
-
+	
 	MyMesh.computeVertexNormals();
 
 	//one first move: initialize the first light source
@@ -433,17 +440,12 @@ void init()
 	//here, we set it to the current location of the camera
 	MyLightPositions.push_back(MyCameraPosition);
 
-	MyMesh.loadMesh("box.obj", true);
+	MyMesh.loadMesh("dodgeColorTest.obj", true);
 	Kd.resize(MyMesh.vertices.size(), Vec3Df(0.5, 0.5, 0.5));
 	Ks.resize(MyMesh.vertices.size(), Vec3Df(0.5, 0.5, 0.5));
 	Shininess.resize(MyMesh.vertices.size(), 3);
-	Box mainbox = calculateMainBox();
-	splitBox(mainbox, 1000);
-	Box box = *(mainbox.getLeftChild());
-	std::cout << box.getMaxX();
-	std::list<Box> list;
-	getBoxesWithoutChildren(list, mainbox);
-	std::cout << "size" <<  list.size();
+	BossBox = calculateMainBox();
+	splitBox(BossBox, 16270);
 }
 
 //Bool ray intersect plane
@@ -451,7 +453,7 @@ bool intersectPlane(const Vec3Df &normal, const Vec3Df &direction, const Vec3Df 
 {
 	// t = (dist - dot(orig, normal) / dot(direction, normal)
 	float denominator = (distance - Vec3Df::dotProduct(origin, normal));
-	if (Vec3Df::dotProduct(direction,normal) != 0) {
+	if (Vec3Df::dotProduct(direction, normal) != 0) {
 		float numerator = Vec3Df::dotProduct(direction, normal);
 		t = denominator / numerator;
 		planepos = origin + t * direction;
@@ -498,40 +500,56 @@ Vec3Df getTriangleCenter(const Vec3Df &edge1, const Vec3Df &edge2, const Vec3Df 
 	return centerOfTriangle;
 }
 
+void findBoxHitByRay(std::list<Box> list, Box Mainbox, const Vec3Df origin, const Vec3Df direction) {
+	if (intersectBox(origin, direction, Mainbox) && Mainbox.getLeftChild()) {
+		Box box1 = *(Mainbox.getLeftChild());
+		if (intersectBox(origin, direction, Mainbox)) {
+			findBoxHitByRay(list, box1, origin, direction);
+		}
+		Box box2 = *(Mainbox.getRightChild());
+		if (intersectBox(origin, direction, Mainbox)) {
+			findBoxHitByRay(list, box1, origin, direction);
+		}
+	}
+	else {
+		list.push_back(Mainbox);
+	}
+}
 //Main raytracer
 Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 {
-	int maxTrianglesInBox = 1;
+	std::list<Box> list;
 	Vec3Df direction = dest - origin;
-	Box mainbox = calculateMainBox();
-	if (intersectBox(origin, direction, mainbox)) {
+	findBoxHitByRay(list, BossBox, origin, direction);
+	std::cout << list.size();
+	
+	if (intersectBox(origin, direction, BossBox)) {
 		std::cout << "Box hit!";
-			for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
-				Triangle currenttriangle = MyMesh.triangles[i];
+		for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
+			Triangle currenttriangle = MyMesh.triangles[i];
 
-				Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
-				Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
-				Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
+			Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
+			Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
+			Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
 
-				Vec3Df edge12 = v0 - v1;
-				Vec3Df edge13 = v0 - v2;
-				Vec3Df normal = Vec3Df::crossProduct(edge12, edge13);
-				normal.normalize();
+			Vec3Df edge12 = v0 - v1;
+			Vec3Df edge13 = v0 - v2;
+			Vec3Df normal = Vec3Df::crossProduct(edge12, edge13);
+			normal.normalize();
 
-				float distance = Vec3Df::dotProduct(normal, v0);
-				Vec3Df planepos;
-				float t;
+			float distance = Vec3Df::dotProduct(normal, v0);
+			Vec3Df planepos;
+			float t;
 
-				if (intersectPlane(normal, direction, origin, distance, t, planepos)) {
-					std::cout << "Plane hit!";
+			if (intersectPlane(normal, direction, origin, distance, t, planepos)) {
 
-					Vec3Df trianglepos;
-					if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) {
-						std::cout << "Triangle hit!";
-					}
+				Vec3Df trianglepos;
+				if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) {
+					std::cout << "Triangle hit!";
 				}
-
 			}
+
+		}
 	}
 
 	return Vec3Df(dest[0], dest[1], dest[2]);
@@ -547,24 +565,24 @@ void yourDebugDraw()
 	//let's draw the lights in the scene as points
 	glPushAttrib(GL_ALL_ATTRIB_BITS); //store all GL attributes
 	glDisable(GL_LIGHTING);
-	glColor3f(1,1,1);
+	glColor3f(1, 1, 1);
 	glPointSize(10);
 	glBegin(GL_POINTS);
-	for (int i=0;i<MyLightPositions.size();++i)
+	for (int i = 0; i<MyLightPositions.size(); ++i)
 		glVertex3fv(MyLightPositions[i].pointer());
 	glEnd();
 	glPopAttrib();//restore all GL attributes
-	//The Attrib commands maintain the state. 
-	//e.g., even though inside the two calls, we set
-	//the color to white, it will be reset to the previous 
-	//state after the pop.
-	//as an example: we draw the test ray, which is set by the keyboard function
+				  //The Attrib commands maintain the state. 
+				  //e.g., even though inside the two calls, we set
+				  //the color to white, it will be reset to the previous 
+				  //state after the pop.
+				  //as an example: we draw the test ray, which is set by the keyboard function
 	glPushAttrib(GL_ALL_ATTRIB_BITS);
 	glDisable(GL_LIGHTING);
 	glBegin(GL_LINES);
-	glColor3f(0,1,1);
+	glColor3f(0, 1, 1);
 	glVertex3f(testRayOrigin[0], testRayOrigin[1], testRayOrigin[2]);
-	glColor3f(0,0,1);
+	glColor3f(0, 0, 1);
 	glVertex3f(testRayDestination[0], testRayDestination[1], testRayDestination[2]);
 	glEnd();
 	glPointSize(10);
@@ -573,10 +591,11 @@ void yourDebugDraw()
 	glEnd();
 	glPopAttrib();
 
-	Box mainbox = calculateMainBox();
-	drawBox(mainbox);
-
-
+	drawBox(BossBox);
+	Box leftchild = *BossBox.leftChild;
+	std::cout << " MaxX: " << leftchild.getMaxX() << " MinX: " << leftchild.getMinX() << " MaxY: " << leftchild.getMaxY() << " MinY: " << leftchild.getMinY() << " MaxZ: " << leftchild.getMaxZ() << " MinZ: " << leftchild.getMinZ();
+	drawBox(leftchild);
+	
 	//draw whatever else you want...
 	////glutSolidSphere(1,10,10);
 	////allows you to draw a sphere at the origin.
@@ -608,14 +627,14 @@ void yourKeyboardFunc(char t, int x, int y, const Vec3Df & rayOrigin, const Vec3
 	//here, as an example, I use the ray to fill in the values for my upper global ray variable
 	//I use these variables in the debugDraw function to draw the corresponding ray.
 	//try it: Press a key, move the camera, see the ray that was launched as a line.
-	testRayOrigin=rayOrigin;	
-	testRayDestination=rayDestination;
+	testRayOrigin = rayOrigin;
+	testRayDestination = rayDestination;
 	performRayTracing(testRayOrigin, testRayDestination);
 	// do here, whatever you want with the keyboard input t.
-	
+
 	//...
-	
-	std::cout<<t<<" pressed! The mouse was in location "<<x<<","<<y<<"!"<<std::endl;	
+
+	std::cout << t << " pressed! The mouse was in location " << x << "," << y << "!" << std::endl;
 }
 
 
@@ -640,7 +659,7 @@ Vec3Df phongSpecular(const Vec3Df & vertexPos, Vec3Df & normal, const Vec3Df & l
 
 Vec3Df phongModel(const Vec3Df & vertexPos, Vec3Df & normal, const Vec3Df & lightPos, const Vec3Df & cameraPos, unsigned int index)
 {
-	Vec3Df diff = phongDiffuse(vertexPos, normal, lightPos,index);
+	Vec3Df diff = phongDiffuse(vertexPos, normal, lightPos, index);
 	Vec3Df spec = phongSpecular(vertexPos, normal, lightPos, cameraPos, index);
 	return diff + spec;
 }
