@@ -208,31 +208,34 @@ Vec3Df getTriangleCenter(const Vec3Df &edge1, const Vec3Df &edge2, const Vec3Df 
 }
 
 bool  Shade(Vec3Df shadowOrig, Vec3Df shadowDest, Vec3Df normal, float &t, Vec3Df planepos, float distance, Triangle currenttriangle) {
-	Vec3Df direction = shadowOrig - shadowDest;	//direction of the shadow, towards the light
+	Vec3Df direction = shadowDest - shadowOrig;	//direction of the shadow, towards the light
 	if (Vec3Df::dotProduct(normal,direction) < FLT_EPSILON) { //test if the triangle can even be hit by light, if not, return true
 		return true;
 	}
-	if (intersectPlane(normal, direction, shadowOrig, distance, t, planepos)) {//run an intersect plane to see if the shadow ray hits a plane
-		Vec3Df trianglepos;
-		for (int i = 0; i < MyMesh.triangles.size(); i++) {
-		Triangle thistriangle = MyMesh.triangles[i];	//assign an easier to use name to the triangle
-		//get the corners
-		Vec3Df v0 = MyMesh.vertices[thistriangle.v[0]].p;
-		Vec3Df v1 = MyMesh.vertices[thistriangle.v[1]].p;
-		Vec3Df v2 = MyMesh.vertices[thistriangle.v[2]].p;
-		//calculate edges to corner 1
-		Vec3Df edge12 = v0 - v1;
-		Vec3Df edge13 = v0 - v2;
-		//take the normal of the edges
-		Vec3Df nnormal = Vec3Df::crossProduct(edge12, edge13);
-		nnormal.normalize();
-		//start iterating through the lighting positions
-		if (rayTriangleIntersect(planepos, thistriangle, trianglepos, nnormal)) {//test if the shadow ray hits a triangle on said plane
-			printf("shadedT");
-			return true;
-			}
-		}
-	}
+	//if (intersectPlane(normal, direction, shadowOrig, distance, t, planepos)) {//run an intersect plane to see if the shadow ray hits a plane
+	//	Vec3Df trianglepos;
+	//	for (int i = 0; i < MyMesh.triangles.size(); i++) {
+	//	Triangle thistriangle = MyMesh.triangles[i];	//assign an easier to use name to the triangle
+	//	//get the corners
+	//	Vec3Df v0 = MyMesh.vertices[thistriangle.v[0]].p;
+	//	Vec3Df v1 = MyMesh.vertices[thistriangle.v[1]].p;
+	//	Vec3Df v2 = MyMesh.vertices[thistriangle.v[2]].p;
+	//	//calculate edges to corner 1
+	//	Vec3Df edge12 = v0 - v1;
+	//	Vec3Df edge13 = v0 - v2;
+	//	//take the normal of the edges
+	//	Vec3Df nnormal = Vec3Df::crossProduct(edge12, edge13);
+	//	nnormal.normalize();
+	//	if (t > 0 || t < 1) {
+	//		return true;
+	//	}
+	//	//start iterating through the lighting positions
+	//	if (rayTriangleIntersect(planepos, thistriangle, trianglepos, nnormal)) {//test if the shadow ray hits a triangle on said plane
+	//		printf("shadedT");
+	//		return true;
+	//		}
+	//	}
+	//}
 	return false;// return false if it doesnt intersect any triangles, this code may be faulty
 }
 
@@ -261,29 +264,22 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 			float distance = Vec3Df::dotProduct(normal, v0); //calculate the distance between the corner and the normal
 			Vec3Df planepos;
 			float t;
-			Vec3Df shadowOrig = getTriangleCenter(v0, v1, v2);
 			for (int i = 0; i < MyLightPositions.size(); i++) {
 				Vec3Df shadowDest = MyLightPositions[i].p;
 				Vec3Df trianglepos;
 				float shadowt;
-				float shaddistance = Vec3Df::dotProduct(normal, v0) - 0.0009;
+				Vec3Df shadowOrig = getTriangleCenter(v0, v1, v2);
+				float shaddistance = Vec3Df::dotProduct(normal, v0);
 				if (Shade(shadowOrig, shadowDest, normal, shadowt, planepos, shaddistance, currenttriangle)) {
+					return Vec3Df(0, 0, 0);
 				}
 			
 				if (intersectPlane(normal, direction, origin, distance, t, planepos)) {	//test if the ray intersects with a plane
 					Vec3Df trianglepos;
 					if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) { //test if it then intersects with a triangle
+						return Vec3Df(1, 1, 1);
 					}
 
-				}
-				if (shadowt < t) {
-					return Vec3Df(0, 0, 0);
-				}
-				if (shadowt > t) {
-					return Vec3Df(1, 1, 1);
-				}
-				else {
-					return Vec3Df(.5, .7, .9);
 				}
 		}
 			
