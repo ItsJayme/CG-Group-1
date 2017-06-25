@@ -161,11 +161,11 @@ int TrianglesInBox(Box& box) {
 void splitBox(Box& parentBox, int maxNoTriangle) {
     if (&parentBox) {
         int t = TrianglesInBox(parentBox);
-        std::cout << "PARENT: Xmax: " << parentBox.getMaxX() << " Xmin: " << parentBox.getMinX()
-                  << " Triangles: " << parentBox.getNoTriangles() << std::endl;
+		std::cout << "PARENT: Xmax: " << parentBox.getMaxX() << " Xmin: " << parentBox.getMinX() << std::endl;
+		std::cout << " Triangles: " << parentBox.getNoTriangles() << std::endl;
         
         if (t < maxNoTriangle) {
-            std::cout << "no split required";
+            std::cout << "no split required" << std::endl;
             return;
         }
         
