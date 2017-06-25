@@ -4,12 +4,11 @@
 #include <windows.h>
 #endif
 #include <GL/glut.h>
-#include "raytracing.h"
-#include "box.h"
+#include <array>
 #include <iostream>
 #include <list>
-#include <array>
-
+#include "box.h"
+#include "raytracing.h"
 
 //temporary variables
 //these are only used to illustrate 
@@ -27,7 +26,8 @@ void getBoxesWithoutChildren(std::list<Box>& result, Box& box) {
 	if (leftChild) {
 		getBoxesWithoutChildren(result, *leftChild);
 	}
-	else if (rightChild) {
+	
+	if (rightChild) {
 		getBoxesWithoutChildren(result, *rightChild);
 	}
 	else {
@@ -340,7 +340,7 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 	return Vec3Df(dest[0], dest[1], dest[2]);
 }
 
-void drawBox(static Box &mainbox) {
+void drawBox(Box &mainbox) {
 	glLineWidth(2.5);
 	glColor3f(1.0, 0.0, 0.0);
 	glBegin(GL_LINES);
