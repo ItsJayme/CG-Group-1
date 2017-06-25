@@ -433,7 +433,7 @@ void init()
 	//here, we set it to the current location of the camera
 	MyLightPositions.push_back(MyCameraPosition);
 
-	MyMesh.loadMesh("teapot.obj", true);
+	MyMesh.loadMesh("box.obj", true);
 	Kd.resize(MyMesh.vertices.size(), Vec3Df(0.5, 0.5, 0.5));
 	Ks.resize(MyMesh.vertices.size(), Vec3Df(0.5, 0.5, 0.5));
 	Shininess.resize(MyMesh.vertices.size(), 3);
