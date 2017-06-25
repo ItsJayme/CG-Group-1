@@ -5,6 +5,7 @@
 #endif
 #include <GL/glut.h>
 #include "raytracing.h"
+#include "box.h"
 #include <iostream>
 #include <list>
 #include <array>
@@ -18,94 +19,6 @@ Vec3Df testRayDestination;
 std::vector<Vec3Df> Kd;//diffuse coefficient per vertex
 std::vector<Vec3Df> Ks;//specularity coefficient per vertex
 std::vector<float> Shininess;//exponent for phong and blinn-phong specularities
-
-//Box class
-class Box {
-	std::vector<Triangle> t;
-	float values[6];
-
-	Box* leftChild;
-	Box* rightChild;
-public:
-	Box();
-
-	int getNoTriangles() {
-		return t.size();
-	}
-
-	void addTriangle(Triangle triangle) {
-		t.push_back(triangle);
-	}
-
-	void removeTriangles() {
-		t.clear();
-	}
-
-
-	void setLeftChild(Box* lChild) {
-		leftChild = lChild;
-	}
-
-	Box* getLeftChild() {
-		return leftChild;
-	}
-
-	void setRighttChild(Box* rChild) {
-		rightChild = rChild;
-	}
-
-	Box* getRightChild() {
-		return rightChild;
-	}
-
-	float getMinX() {
-		return values[0];
-	}
-
-	void setMinX(float minX) {
-		values[0] = minX;
-	}
-
-	float getMaxX() {
-		return values[1];
-	}
-
-	void setMaxX(float maxX) {
-		values[1] = maxX;
-	}
-
-	float getMinY() {
-		return values[2];
-	}
-
-	void setMinY(float minY) {
-		values[2] = minY;
-	}
-
-	float getMaxY() {
-		return values[3];
-	}
-
-	void setMaxY(float maxY) {
-		values[3] = maxY;
-	}
-
-	float getMinZ() {
-		return values[4];
-	}
-
-	void setMinZ(float minZ) {
-		values[4] = minZ;
-	}
-
-	float getMaxZ() {
-		return values[5];
-	}
-
-	void setMaxZ(float maxZ) {
-		values[5] = maxZ;
-	}
-};
 
 void getBoxesWithoutChildren(std::list<Box>& result, Box& box) {
 	Box* leftChild = box.getLeftChild();
@@ -203,28 +116,28 @@ int TrianglesInBox(Box &box) {
 	box.removeTriangles();
 	for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
 		bool b0 = false; bool b1 = false; bool b2 = false;
-		Triangle currenttriangle = MyMesh.triangles[i];
-		Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
-		Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
-		Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
+		Triangle* currentTriangle = &MyMesh.triangles[i];
+		Vec3Df v0 = MyMesh.vertices[currentTriangle->v[0]].p;
+		Vec3Df v1 = MyMesh.vertices[currentTriangle->v[1]].p;
+		Vec3Df v2 = MyMesh.vertices[currentTriangle->v[2]].p;
 		if (box.getMinX() < v0[0] && box.getMaxX() > v0[0]) {
 			if (box.getMinY() < v0[1] && box.getMaxY() > v0[1]) {
 				if (box.getMinZ() < v0[2] && box.getMaxZ() > v0[2]) {
-					box.addTriangle(currenttriangle);
+					box.addTriangle(currentTriangle);
 				}
 			}
 		}
 		else if (box.getMinX() < v1[0] && box.getMaxX() > v1[0]) {
 			if (box.getMinY() < v1[1] && box.getMaxY() > v1[1]) {
 				if (box.getMinZ() < v1[2] && box.getMaxZ() > v1[2]) {
-					box.addTriangle(currenttriangle);
+					box.addTriangle(currentTriangle);
 				}
 			}
 		}
 		else if (box.getMinX() < v2[0] && box.getMaxX() > v2[0]) {
 			if (box.getMinY() < v2[1] && box.getMaxY() > v2[1]) {
 				if (box.getMinZ() < v2[2] && box.getMaxZ() > v2[2]) {
-					box.addTriangle(currenttriangle);
+					box.addTriangle(currentTriangle);
 				}
 			}
 		}
@@ -258,7 +171,7 @@ void splitBox(Box parentBox, int maxNoTriangle) {
 	ChildBoxB.setMaxZ(parentBox.getMaxZ());
 	ChildBoxB.setMinZ(parentBox.getMinZ());
 	parentBox.setLeftChild(&ChildBoxA);
-	parentBox.setRighttChild(&ChildBoxB);
+	parentBox.setRightChild(&ChildBoxB);
 	
 	splitBox(ChildBoxA,  maxNoTriangle);
 	splitBox(ChildBoxB,  maxNoTriangle);
@@ -638,8 +551,4 @@ Vec3Df phongModel(const Vec3Df & vertexPos, Vec3Df & normal, const Vec3Df & ligh
 	Vec3Df diff = phongDiffuse(vertexPos, normal, lightPos,index);
 	Vec3Df spec = phongSpecular(vertexPos, normal, lightPos, cameraPos, index);
 	return diff + spec;
-}
-
-Box::Box()
-{
 }
