@@ -1,0 +1,4 @@
+[Project]
+Name=RayTracing
+Manager=KDevCMakeManager
+VersionControl=kdevgit
