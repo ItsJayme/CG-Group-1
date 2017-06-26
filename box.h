@@ -8,7 +8,7 @@
 #include "mesh.h"
 
 class Box {
-	std::vector<Triangle*> t;
+	std::list<Triangle*> t;
 	float values[6];
     std::string name;
 
@@ -37,7 +37,7 @@ public:
 		t.clear();
 	}
 
-	inline std::vector<Triangle*> getTriangles() {
+	inline std::list<Triangle*> getTriangles() {
 		return t;
 	}
 
