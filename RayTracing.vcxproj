@@ -86,6 +86,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="box.h" />
     <ClInclude Include="imageWriter.h" />
     <ClInclude Include="matrix.h" />
     <ClInclude Include="mesh.h" />
