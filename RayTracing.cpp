@@ -329,25 +329,53 @@ bool rayTriangleIntersect(Vec3Df &planepos, Triangle &triangle, Vec3Df &triangle
 	bary[1] = areaPCA / areaABC;
 	bary[2] = 1 - bary[0] - bary[1];
 
-	if ((bary[0] < 0) || (bary[0] > 1)) {
+	if (bary[0] < 0) { //if B is smaller than 0, the point lies outside the triangle
 		return false;
 	}
-	if ((bary[1] < 0) || (bary[1] > 1)) {
+	if ((bary[1] < 0) || (bary[1] > 1)) { //if A + B is larger than 1, the point lies outside the triangle
 		return false;
 	}
 	if (bary[0] + bary[1] > 1) {
 		return false;
 	}
-	else {
+	else { //if it made it this far, 
 		return true;
 	}
 }
 
 //Returns the center of a triangle
+//returns the exact center of a triangle by taking the average of the distance of the points
 Vec3Df getTriangleCenter(const Vec3Df &edge1, const Vec3Df &edge2, const Vec3Df &edge3) {
 	Vec3Df centerOfTriangle = (edge1 + edge2 + edge3 / 3);
 	return centerOfTriangle;
 }
+
+bool Shade(Vec3Df &planepos, Triangle &triangle, Vec3Df &trianglepos, Vec3Df normal, float oldt, Vec3Df origin) {
+	
+	if (rayTriangleIntersect(planepos, triangle, trianglepos, normal)) {	// check if it intersects with any triangles
+	Vec3Df direction = planepos *0.09 - origin;
+	float distance = Vec3Df::dotProduct(normal, planepos);
+	float newt;
+	Vec3Df newplanepos;
+	for (int i = 0; i < MyLightPositions.size(); i++) {
+		origin = MyLightPositions[i].p;
+		if (intersectPlane(normal, direction, origin, distance, newt, newplanepos)) {	//test if the ray intersects with a different plane in between it and the start
+			if (newt < oldt) {
+				return true;
+				
+			}
+			
+		}
+		
+	}
+	return false;
+	
+}
+
+	return true;
+
+}
+
 
 //Main raytracer
 Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
@@ -383,12 +411,16 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 						if (rayTriangleIntersect(planepos, *tr, trianglepos, normal)) {
 							std::cout << "Triangle hit!";
 						}
-					}
+						if (Shade(planepos, *tr, trianglepos, normal, t, origin)) {
+							return Vec3Df(0, 0, 0);
+						}
+						else {
+							return Vec3Df(1, 1, 1);
+						}
 
+					}
+				}
 			}
-		}
-		
-		
 		}
 	}
 
