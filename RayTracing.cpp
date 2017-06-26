@@ -127,6 +127,7 @@ void calculateMainBox(Box* box)
 
 Box* BossBox = new Box();
 std::list<Box*> resultList;
+std::list<Box*> boxes;
 //Calculates the number of trinagles in a box, and the triangles in a box
 int TrianglesInBox(Box* box) {
 	int count = 0;
@@ -140,23 +141,23 @@ int TrianglesInBox(Box* box) {
 		Vec3Df v1 = MyMesh.vertices[currentTriangle->v[1]].p;
 		Vec3Df v2 = MyMesh.vertices[currentTriangle->v[2]].p;
 
-		if (box->getMinX() < v0[0] && box->getMaxX() > v0[0]) {
-			if (box->getMinY() < v0[1] && box->getMaxY() > v0[1]) {
-				if (box->getMinZ() < v0[2] && box->getMaxZ() > v0[2]) {
+		if (box->getMinX() <= v0[0] && box->getMaxX() >= v0[0]) {
+			if (box->getMinY() <= v0[1] && box->getMaxY() >= v0[1]) {
+				if (box->getMinZ() <= v0[2] && box->getMaxZ() >= v0[2]) {
 					box->addTriangle(currentTriangle);
 				}
 			}
 		}
-		else if (box->getMinX() < v1[0] && box->getMaxX() > v1[0]) {
-			if (box->getMinY() < v1[1] && box->getMaxY() > v1[1]) {
-				if (box->getMinZ() < v1[2] && box->getMaxZ() > v1[2]) {
+		else if (box->getMinX() <= v1[0] && box->getMaxX() >= v1[0]) {
+			if (box->getMinY() <= v1[1] && box->getMaxY() >= v1[1]) {
+				if (box->getMinZ() <= v1[2] && box->getMaxZ() >= v1[2]) {
 					box->addTriangle(currentTriangle);
 				}
 			}
 		}
-		else if (box->getMinX() < v2[0] && box->getMaxX() > v2[0]) {
-			if (box->getMinY() < v2[1] && box->getMaxY() > v2[1]) {
-				if (box->getMinZ() < v2[2] && box->getMaxZ() > v2[2]) {
+		else if (box->getMinX() <= v2[0] && box->getMaxX() >= v2[0]) {
+			if (box->getMinY() <= v2[1] && box->getMaxY() >= v2[1]) {
+				if (box->getMinZ() <= v2[2] && box->getMaxZ() >= v2[2]) {
 					box->addTriangle(currentTriangle);
 				}
 			}
@@ -177,12 +178,6 @@ void splitBox(Box* parentBox, int maxNoTriangle) {
 			std::cout << "no split required" << std::endl;
 			return;
 		}
-
-		Box* b;
-		Box* c;
-		Box* d;
-		Box* e;
-
 		Box* ChildBoxA = new Box();
 		Box* ChildBoxB = new Box();
 
@@ -216,7 +211,6 @@ void splitBox(Box* parentBox, int maxNoTriangle) {
 			ChildBoxA->setMaxZ((parentBox->getMaxZ() + parentBox->getMinZ()) / 2);
 			ChildBoxB->setMinZ((parentBox->getMaxZ() + parentBox->getMinZ()) / 2);
 		}
-
 		parentBox->setLeftChild(ChildBoxA);
 		parentBox->setRightChild(ChildBoxB);
 
@@ -358,37 +352,43 @@ Vec3Df getTriangleCenter(const Vec3Df &edge1, const Vec3Df &edge2, const Vec3Df 
 //Main raytracer
 Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 {
-
 	Vec3Df direction = dest - origin;
-	Box* box = BossBox->getLeftChild();	
-	std::cout << "MaxX" << box->getMaxX();
 	if (intersectBox(origin, direction, BossBox)) {
-		std::cout << "Box hit!";
-		for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
-			Triangle currenttriangle = MyMesh.triangles[i];
+		getBoxesWithoutChildren(boxes, BossBox);
+		for (std::list<Box*>::const_iterator iter = boxes.begin(); iter != boxes.end(); iter++) {
+			Box* thisbox = *iter;
+			TrianglesInBox(thisbox);
+			if (intersectBox(origin, direction, thisbox)) {
+				std::list<Triangle*> triangles = thisbox->getTriangles();
 
-			Vec3Df v0 = MyMesh.vertices[currenttriangle.v[0]].p;
-			Vec3Df v1 = MyMesh.vertices[currenttriangle.v[1]].p;
-			Vec3Df v2 = MyMesh.vertices[currenttriangle.v[2]].p;
+				for (std::list<Triangle*>::const_iterator iter = triangles.begin(); iter != triangles.end(); iter++) {
+					Triangle* tr = *iter;
 
-			Vec3Df edge12 = v0 - v1;
-			Vec3Df edge13 = v0 - v2;
-			Vec3Df normal = Vec3Df::crossProduct(edge12, edge13);
-			normal.normalize();
+					Vec3Df v0 = MyMesh.vertices[tr->v[0]].p;
+					Vec3Df v1 = MyMesh.vertices[tr->v[1]].p;
+					Vec3Df v2 = MyMesh.vertices[tr->v[2]].p;
 
-			float distance = Vec3Df::dotProduct(normal, v0);
-			Vec3Df planepos;
-			float t;
+					Vec3Df edge12 = v0 - v1;
+					Vec3Df edge13 = v0 - v2;
+					Vec3Df normal = Vec3Df::crossProduct(edge12, edge13);
+					normal.normalize();
 
-			if (intersectPlane(normal, direction, origin, distance, t, planepos)) {
-				std::cout << "Plane hit!";
+					float distance = Vec3Df::dotProduct(normal, v0);
+					Vec3Df planepos;
+					float t;
 
-				Vec3Df trianglepos;
-				if (rayTriangleIntersect(planepos, currenttriangle, trianglepos, normal)) {
-					std::cout << "Triangle hit!";
-				}
+					if (intersectPlane(normal, direction, origin, distance, t, planepos)) {
+
+						Vec3Df trianglepos;
+						if (rayTriangleIntersect(planepos, *tr, trianglepos, normal)) {
+							std::cout << "Triangle hit!";
+						}
+					}
+
 			}
-
+		}
+		
+		
 		}
 	}
 
