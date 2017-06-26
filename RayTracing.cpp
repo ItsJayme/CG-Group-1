@@ -20,24 +20,32 @@ std::vector<Vec3Df> Kd;//diffuse coefficient per vertex
 std::vector<Vec3Df> Ks;//specularity coefficient per vertex
 std::vector<float> Shininess;//exponent for phong and blinn-phong specularities
 
-void getBoxesWithoutChildren(std::list<Box>& result, Box& box) {
-	Box* leftChild = box.getLeftChild();
-	Box* rightChild = box.getRightChild();
+void getBoxesWithoutChildren(std::list<Box*>& result, Box* box) {
+	if (box) {
+		Box* leftChild = box->getLeftChild();
+		Box* rightChild = box->getRightChild();
 
-	if (leftChild) {
-		getBoxesWithoutChildren(result, *leftChild);
-	}
-	
-	if (rightChild) {
-		getBoxesWithoutChildren(result, *rightChild);
-	}
-	else {
-		result.push_back(box);
+		/*
+		std::cout << "Name of the box: " << box->getName() << std::endl;
+		std::cout << "Number of triangles: " << box->getNoTriangles() << std::endl;
+		std::cout << "Size of result set: " << result.size() << std::endl << std::endl;
+		*/
+
+		if (leftChild) {
+			getBoxesWithoutChildren(result, leftChild);
+		}
+
+		if (rightChild) {
+			getBoxesWithoutChildren(result, rightChild);
+		}
+		else {
+			result.push_back(box);
+		}
 	}
 }
 
 //Calculates the main box of the scene
-void calculateMainBox(Box& box)
+void calculateMainBox(Box* box)
 {
 	float Xmax = -HUGE_VALF;
     float Xmin = HUGE_VALF;
@@ -108,20 +116,20 @@ void calculateMainBox(Box& box)
 			Zmin = v2[2];
 		}
 		
-		box.setMaxX(Xmax);
-		box.setMinX(Xmin);
-		box.setMaxY(Ymax);
-		box.setMinY(Ymin);
-		box.setMaxZ(Zmax);
-		box.setMinZ(Zmin);
+		box->setMaxX(Xmax);
+		box->setMinX(Xmin);
+		box->setMaxY(Ymax);
+		box->setMinY(Ymin);
+		box->setMaxZ(Zmax);
+		box->setMinZ(Zmin);
 	}
 }
 	
 
 //Calculates the number of trinagles in a box, and the triangles in a box
-int TrianglesInBox(Box& box) {
+int TrianglesInBox(Box* box) {
 	int count = 0;
-	box.removeTriangles();
+	box->removeTriangles();
     
 	for (unsigned int i = 0; i < MyMesh.triangles.size(); i++) {
 		bool b0 = false; bool b1 = false; bool b2 = false;
@@ -131,69 +139,69 @@ int TrianglesInBox(Box& box) {
 		Vec3Df v1 = MyMesh.vertices[currentTriangle->v[1]].p;
 		Vec3Df v2 = MyMesh.vertices[currentTriangle->v[2]].p;
 		
-        if (box.getMinX() < v0[0] && box.getMaxX() > v0[0]) {
-			if (box.getMinY() < v0[1] && box.getMaxY() > v0[1]) {
-				if (box.getMinZ() < v0[2] && box.getMaxZ() > v0[2]) {
-					box.addTriangle(currentTriangle);
+        if (box->getMinX() < v0[0] && box->getMaxX() > v0[0]) {
+			if (box->getMinY() < v0[1] && box->getMaxY() > v0[1]) {
+				if (box->getMinZ() < v0[2] && box->getMaxZ() > v0[2]) {
+					box->addTriangle(currentTriangle);
 				}
 			}
 		}
-		else if (box.getMinX() < v1[0] && box.getMaxX() > v1[0]) {
-			if (box.getMinY() < v1[1] && box.getMaxY() > v1[1]) {
-				if (box.getMinZ() < v1[2] && box.getMaxZ() > v1[2]) {
-					box.addTriangle(currentTriangle);
+		else if (box->getMinX() < v1[0] && box->getMaxX() > v1[0]) {
+			if (box->getMinY() < v1[1] && box->getMaxY() > v1[1]) {
+				if (box->getMinZ() < v1[2] && box->getMaxZ() > v1[2]) {
+					box->addTriangle(currentTriangle);
 				}
 			}
 		}
-		else if (box.getMinX() < v2[0] && box.getMaxX() > v2[0]) {
-			if (box.getMinY() < v2[1] && box.getMaxY() > v2[1]) {
-				if (box.getMinZ() < v2[2] && box.getMaxZ() > v2[2]) {
-					box.addTriangle(currentTriangle);
+		else if (box->getMinX() < v2[0] && box->getMaxX() > v2[0]) {
+			if (box->getMinY() < v2[1] && box->getMaxY() > v2[1]) {
+				if (box->getMinZ() < v2[2] && box->getMaxZ() > v2[2]) {
+					box->addTriangle(currentTriangle);
 				}
 			}
 		}
 	}
 	
-	return box.getNoTriangles();
+	return box->getNoTriangles();
 }
 
 //Splits up the box to small boxes with a maximum of maxNoTriangle triangles
-void splitBox(Box& parentBox, int maxNoTriangle) {
-    if (&parentBox) {
+void splitBox(Box* parentBox, int maxNoTriangle) {
+    if (parentBox) {
         int t = TrianglesInBox(parentBox);
-		std::cout << "PARENT: Xmax: " << parentBox.getMaxX() << " Xmin: " << parentBox.getMinX() << std::endl;
-		std::cout << " Triangles: " << parentBox.getNoTriangles() << std::endl;
+		std::cout << "PARENT: Xmax: " << parentBox->getMaxX() << " Xmin: " << parentBox->getMinX() << std::endl;
+		std::cout << " Triangles: " << parentBox->getNoTriangles() << std::endl;
         
         if (t < maxNoTriangle) {
             std::cout << "no split required" << std::endl;
             return;
         }
         
-        Box b;
-        Box c;
-        Box d;
-        Box e;
+        Box* b;
+        Box* c;
+        Box* d;
+        Box* e;
         
-        Box ChildBoxA; 
-        Box ChildBoxB;
+        Box* ChildBoxA = new Box(); 
+        Box* ChildBoxB = new Box();
         
-        float xlength = parentBox.getMaxX() - parentBox.getMinX();
-        ChildBoxA.setMaxX((parentBox.getMaxX() + parentBox.getMinX())/2);
-        ChildBoxA.setMinX(parentBox.getMinX());
-        ChildBoxA.setMaxY(parentBox.getMaxY());
-        ChildBoxA.setMinY(parentBox.getMinY());
-        ChildBoxA.setMaxZ(parentBox.getMaxZ());
-        ChildBoxA.setMinZ(parentBox.getMinZ());
+        float xlength = parentBox->getMaxX() - parentBox->getMinX();
+        ChildBoxA->setMaxX((parentBox->getMaxX() + parentBox->getMinX())/2);
+        ChildBoxA->setMinX(parentBox->getMinX());
+        ChildBoxA->setMaxY(parentBox->getMaxY());
+        ChildBoxA->setMinY(parentBox->getMinY());
+        ChildBoxA->setMaxZ(parentBox->getMaxZ());
+        ChildBoxA->setMinZ(parentBox->getMinZ());
 
-        ChildBoxB.setMaxX(parentBox.getMaxX());
-        ChildBoxB.setMinX((parentBox.getMaxX() + parentBox.getMinX()) / 2);
-        ChildBoxB.setMaxY(parentBox.getMaxY());
-        ChildBoxB.setMinY(parentBox.getMinY());
-        ChildBoxB.setMaxZ(parentBox.getMaxZ());
-        ChildBoxB.setMinZ(parentBox.getMinZ());
+        ChildBoxB->setMaxX(parentBox->getMaxX());
+        ChildBoxB->setMinX((parentBox->getMaxX() + parentBox->getMinX()) / 2);
+        ChildBoxB->setMaxY(parentBox->getMaxY());
+        ChildBoxB->setMinY(parentBox->getMinY());
+        ChildBoxB->setMaxZ(parentBox->getMaxZ());
+        ChildBoxB->setMinZ(parentBox->getMinZ());
         
-        parentBox.setLeftChild(&ChildBoxA);
-        parentBox.setRightChild(&ChildBoxB);
+        parentBox->setLeftChild(ChildBoxA);
+        parentBox->setRightChild(ChildBoxB);
         
         splitBox(ChildBoxA,  maxNoTriangle);
         splitBox(ChildBoxB,  maxNoTriangle);
@@ -201,14 +209,14 @@ void splitBox(Box& parentBox, int maxNoTriangle) {
 }
 
 //Bool ray intersect box
-bool intersectBox(const Vec3Df &origin, const Vec3Df &direction, Box mainbox)
+bool intersectBox(const Vec3Df &origin, const Vec3Df &direction, Box* mainbox)
 {
-	float Xmax = mainbox.getMaxX();
-	float Xmin = mainbox.getMinX();
-	float Ymax = mainbox.getMaxY();
-	float Ymin = mainbox.getMinY();
-	float Zmax = mainbox.getMaxZ();
-	float Zmin = mainbox.getMinZ();
+	float Xmax = mainbox->getMaxX();
+	float Xmin = mainbox->getMinX();
+	float Ymax = mainbox->getMaxY();
+	float Ymin = mainbox->getMinY();
+	float Zmax = mainbox->getMaxZ();
+	float Zmin = mainbox->getMinZ();
 
 	//t = (xmin - Ox) / dxmin
 	float txmin = (Xmin - origin[0]) / direction[0];
@@ -270,10 +278,10 @@ void init()
     Shininess.resize(MyMesh.vertices.size(), 3);
     std::cout << "MyMesh.vertices.size(): " << MyMesh.vertices.size() << std::endl;
 
-	Box mainbox;
+	Box* mainbox = new Box();
     calculateMainBox(mainbox);
-	Box a;
-	Box b;
+	Box* a;
+	Box* b;
 	int maxTrianglesInBox = 1000;
 	std::cout << "init: " << TrianglesInBox(mainbox);
 	splitBox(mainbox,  maxTrianglesInBox);
@@ -336,7 +344,7 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 {
 	int maxTrianglesInBox = 1;
 	Vec3Df direction = dest - origin;
-	Box mainbox;
+	Box* mainbox = new Box();
     calculateMainBox(mainbox);
 	if (intersectBox(origin, direction, mainbox)) {
 		std::cout << "Box hit!";
@@ -371,65 +379,56 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 	return Vec3Df(dest[0], dest[1], dest[2]);
 }
 
-void drawBox(Box &mainbox) {
+void drawBox(Box* mainbox) {
 	glLineWidth(2.5);
 	glColor3f(1.0, 0.0, 0.0);
 	glBegin(GL_LINES);
-	glVertex3f(mainbox.getMaxX(), mainbox.getMinY(), mainbox.getMinZ());
-	glVertex3f(mainbox.getMinX(), mainbox.getMinY(), mainbox.getMinZ());
+	glVertex3f(mainbox->getMaxX(), mainbox->getMinY(), mainbox->getMinZ());
+	glVertex3f(mainbox->getMinX(), mainbox->getMinY(), mainbox->getMinZ());
 	glEnd();
 
 	glLineWidth(2.5);
 	glColor3f(1.0, 0.0, 0.0);
 	glBegin(GL_LINES);
-	glVertex3f(mainbox.getMinX(), mainbox.getMaxY(), mainbox.getMinZ());
-	glVertex3f(mainbox.getMinX(), mainbox.getMinY(), mainbox.getMinZ());
+	glVertex3f(mainbox->getMinX(), mainbox->getMaxY(), mainbox->getMinZ());
+	glVertex3f(mainbox->getMinX(), mainbox->getMinY(), mainbox->getMinZ());
 	glEnd();
 
 	glLineWidth(2.5);
 	glColor3f(1.0, 0.0, 0.0);
 	glBegin(GL_LINES);
-	glVertex3f(mainbox.getMinX(), mainbox.getMinY(), mainbox.getMaxZ());
-	glVertex3f(mainbox.getMinX(), mainbox.getMinY(), mainbox.getMinZ());
+	glVertex3f(mainbox->getMinX(), mainbox->getMinY(), mainbox->getMaxZ());
+	glVertex3f(mainbox->getMinX(), mainbox->getMinY(), mainbox->getMinZ());
 	glEnd();
 
 	glLineWidth(2.5);
 	glColor3f(1.0, 0.0, 0.0);
 	glBegin(GL_LINES);
-	glVertex3f(mainbox.getMinX(), mainbox.getMaxY(), mainbox.getMinZ());
-	glVertex3f(mainbox.getMaxX(), mainbox.getMaxY(), mainbox.getMinZ());
+	glVertex3f(mainbox->getMinX(), mainbox->getMaxY(), mainbox->getMinZ());
+	glVertex3f(mainbox->getMaxX(), mainbox->getMaxY(), mainbox->getMinZ());
 	glEnd();
 
 	glLineWidth(2.5);
 	glColor3f(1.0, 0.0, 0.0);
 	glBegin(GL_LINES);
-	glVertex3f(mainbox.getMinX(), mainbox.getMaxY(), mainbox.getMinZ());
-	glVertex3f(mainbox.getMinX(), mainbox.getMaxY(), mainbox.getMaxZ());
-	glEnd();
-
-
-	glLineWidth(2.5);
-	glColor3f(1.0, 0.0, 0.0);
-	glBegin(GL_LINES);
-	glVertex3f(mainbox.getMinX(), mainbox.getMinY(), mainbox.getMaxZ());
-	glVertex3f(mainbox.getMinX(), mainbox.getMaxY(), mainbox.getMaxZ());
+	glVertex3f(mainbox->getMinX(), mainbox->getMaxY(), mainbox->getMinZ());
+	glVertex3f(mainbox->getMinX(), mainbox->getMaxY(), mainbox->getMaxZ());
 	glEnd();
 
 
 	glLineWidth(2.5);
 	glColor3f(1.0, 0.0, 0.0);
 	glBegin(GL_LINES);
-	glVertex3f(mainbox.getMaxX(), mainbox.getMinY(), mainbox.getMinZ());
-	glVertex3f(mainbox.getMaxX(), mainbox.getMinY(), mainbox.getMaxZ());
+	glVertex3f(mainbox->getMinX(), mainbox->getMinY(), mainbox->getMaxZ());
+	glVertex3f(mainbox->getMinX(), mainbox->getMaxY(), mainbox->getMaxZ());
 	glEnd();
-
 
 
 	glLineWidth(2.5);
 	glColor3f(1.0, 0.0, 0.0);
 	glBegin(GL_LINES);
-	glVertex3f(mainbox.getMaxX(), mainbox.getMinY(), mainbox.getMinZ());
-	glVertex3f(mainbox.getMaxX(), mainbox.getMaxY(), mainbox.getMinZ());
+	glVertex3f(mainbox->getMaxX(), mainbox->getMinY(), mainbox->getMinZ());
+	glVertex3f(mainbox->getMaxX(), mainbox->getMinY(), mainbox->getMaxZ());
 	glEnd();
 
 
@@ -437,32 +436,41 @@ void drawBox(Box &mainbox) {
 	glLineWidth(2.5);
 	glColor3f(1.0, 0.0, 0.0);
 	glBegin(GL_LINES);
-	glVertex3f(mainbox.getMinX(), mainbox.getMinY(), mainbox.getMaxZ());
-	glVertex3f(mainbox.getMaxX(), mainbox.getMinY(), mainbox.getMaxZ());
+	glVertex3f(mainbox->getMaxX(), mainbox->getMinY(), mainbox->getMinZ());
+	glVertex3f(mainbox->getMaxX(), mainbox->getMaxY(), mainbox->getMinZ());
+	glEnd();
+
+
+
+	glLineWidth(2.5);
+	glColor3f(1.0, 0.0, 0.0);
+	glBegin(GL_LINES);
+	glVertex3f(mainbox->getMinX(), mainbox->getMinY(), mainbox->getMaxZ());
+	glVertex3f(mainbox->getMaxX(), mainbox->getMinY(), mainbox->getMaxZ());
 	glEnd();
 
 
 	glLineWidth(2.5);
 	glColor3f(1.0, 0.0, 0.0);
 	glBegin(GL_LINES);
-	glVertex3f(mainbox.getMaxX(), mainbox.getMaxY(), mainbox.getMaxZ());
-	glVertex3f(mainbox.getMaxX(), mainbox.getMinY(), mainbox.getMaxZ());
+	glVertex3f(mainbox->getMaxX(), mainbox->getMaxY(), mainbox->getMaxZ());
+	glVertex3f(mainbox->getMaxX(), mainbox->getMinY(), mainbox->getMaxZ());
 	glEnd();
 
 
 	glLineWidth(2.5);
 	glColor3f(1.0, 0.0, 0.0);
 	glBegin(GL_LINES);
-	glVertex3f(mainbox.getMinX(), mainbox.getMaxY(), mainbox.getMaxZ());
-	glVertex3f(mainbox.getMaxX(), mainbox.getMaxY(), mainbox.getMaxZ());
+	glVertex3f(mainbox->getMinX(), mainbox->getMaxY(), mainbox->getMaxZ());
+	glVertex3f(mainbox->getMaxX(), mainbox->getMaxY(), mainbox->getMaxZ());
 	glEnd();
 
 
 	glLineWidth(2.5);
 	glColor3f(1.0, 0.0, 0.0);
 	glBegin(GL_LINES);
-	glVertex3f(mainbox.getMaxX(), mainbox.getMaxY(), mainbox.getMinZ());
-	glVertex3f(mainbox.getMaxX(), mainbox.getMaxY(), mainbox.getMaxZ());
+	glVertex3f(mainbox->getMaxX(), mainbox->getMaxY(), mainbox->getMinZ());
+	glVertex3f(mainbox->getMaxX(), mainbox->getMaxY(), mainbox->getMaxZ());
 	glEnd();
 }
 //Debug draw
@@ -503,16 +511,16 @@ void yourDebugDraw()
 	glPopAttrib();
 
 	//Draw mainBox
-	std::list<Box> resultList;
-	Box mainbox;
+	std::list<Box*> resultList;
+	Box* mainbox = new Box();
     calculateMainBox(mainbox);
 	getBoxesWithoutChildren(resultList, mainbox);
 
     std::cout << resultList.size();
 	
     drawBox(mainbox);
-	for (std::list<Box>::const_iterator iter = resultList.begin(); iter != resultList.end(); iter++) {
-		Box box = *iter;
+	for (std::list<Box*>::const_iterator iter = resultList.begin(); iter != resultList.end(); iter++) {
+		Box* box = *iter;
 		drawBox(box);
 	}
 
