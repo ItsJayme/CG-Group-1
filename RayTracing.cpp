@@ -318,6 +318,10 @@ Vec3Df performRayTracing(const Vec3Df & origin, const Vec3Df & dest)
 				if (intersectPlane(normal, direction, origin, distance, t, planepos)) {	//test if the ray intersects with a plane
 					Vec3Df trianglepos;
 					colour = Shade(planepos, currenttriangle, trianglepos, normal, t, origin);
+					return colour;
+				}
+				else {
+					return Vec3Df(0.1, 0.5, 0.5);
 				}
 		}
 
