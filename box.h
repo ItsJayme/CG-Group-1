@@ -23,8 +23,7 @@ public:
     
     inline std::string getName() {
         return name;
-    };
-    
+    };    
     
 	inline int getNoTriangles() {
 		return t.size();
@@ -36,6 +35,10 @@ public:
 
 	inline void removeTriangles() {
 		t.clear();
+	}
+
+	inline std::vector<Triangle*> getTriangles() {
+		return t;
 	}
 
 	inline void setLeftChild(Box* lChild) {
