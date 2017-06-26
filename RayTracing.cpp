@@ -4,8 +4,11 @@
 #include <windows.h>
 #endif
 #include <GL/glut.h>
+#include <Math.h>
 #include "raytracing.h"
 #include <iostream>
+#define _USE_MATH_DEFINES
+# define M_PI           3.14159265358979323846  /* pi */
 
 
 //temporary variables
@@ -229,10 +232,71 @@ Vec3Df getTriangleCenter(const Vec3Df &edge1, const Vec3Df &edge2, const Vec3Df 
 	return centerOfTriangle;
 }
 
-Vec3Df Shade(Vec3Df planepos, Vec3Df color, Vec3Df normal, int index, Vec3Df trianglepos)
+Vec3Df calcRay(Vec3Df orig, Vec3Df dest) {//returns the direction
+	return (orig - dest);
+}
+
+bool isShadow(Vec3Df origin, Vec3Df destination, Triangle self) {	//returns if the triangle is shaded or not
+	Vec3Df dir = calcRay(origin, destination);
+	Vec3Df v0 = MyMesh.vertices[self.v[0]].p;
+	Vec3Df v1 = MyMesh.vertices[self.v[1]].p;
+	Vec3Df v2 = MyMesh.vertices[self.v[2]].p;
+	//calculate the edges leading to corner 1 from the other 2 corners
+	Vec3Df edge12 = v0 - v1;
+	Vec3Df edge13 = v0 - v2;
+	//get the normal by performing a crossproduct of the 2 calculated edges from the point
+	Vec3Df normal = Vec3Df::crossProduct(edge12, edge13);
+	normal.normalize();
+
+	float distance = Vec3Df::dotProduct(normal, v0); //calculate the distance between the corner and the normal
+	Vec3Df planepos;
+	float t;
+	Vec3Df trianglepos;
+
+	if (intersectPlane(normal, dir, origin, distance, t, planepos)) {
+		if (rayTriangleIntersect(planepos, self, trianglepos, normal)) {
+			return true;
+		}
+	}
+	return false;
+
+}
+float softShadows(Vec3Df origin, Vec3Df destination, Triangle self, int offsets) {
+	float intensity;
+	int hits = 0;
+	Vec3Df lightpos = origin;
+	Vec3Df nearestIntersection = destination;
+	// Creates offsets and checks for intersection
+	srand(NULL);
+	double x = cos(((rand() % 180 + 0) * M_PI) / 180.f);
+	double y = cos(((rand() % 180 + 0) * M_PI) / 180.f);
+	double z = cos(((rand() % 180 + 0) * M_PI) / 180.f);
+	Vec3Df tempRay[2];
+	float maxOffSet = 0.2;
+	//float r = static_cast <float> (rand()) / (static_cast <float> (RAND_MAX / maxOffSet));
+	float r = 0.5;
+
+	for (int i = 0; i < offsets; i++) {
+		lightpos = origin;
+		lightpos += Vec3Df(x, y, z) * r * i / offsets;
+
+		tempRay[0] = lightpos;
+		tempRay[1] = nearestIntersection;
+		if (isShadow(origin, destination, self)) {
+			hits++;
+		}
+	}
+	//Calculate the intensity of the shadow
+	intensity = 1.f / offsets * (offsets - hits);
+	return intensity;
+}
+
+
+Vec3Df Shade(Vec3Df planepos, Vec3Df color, Vec3Df normal, int index, Vec3Df trianglepos, Vec3Df dir)
 {
 	bool lighthit = true;
 	for (int j = 0; j < MyMesh.triangles.size(); j++) {
+		planepos = planepos - planepos * 0.09;
 		if (rayTriangleIntersect(planepos, MyMesh.triangles[j], trianglepos, normal)) {
 			lighthit = false;
 			break;
@@ -240,10 +304,10 @@ Vec3Df Shade(Vec3Df planepos, Vec3Df color, Vec3Df normal, int index, Vec3Df tri
 	}
 	if(lighthit = true){
 		for (int i = 0; i < MyLightPositions.size(); i++) {	// for each light position
-			color += phongModel(planepos, normal, MyLightPositions[i].p, MyCameraPosition, index);	//perform the phong calcs
+			color += phongModel(planepos, normal, MyLightPositions[i].p, MyCameraPosition, 1);	//perform the phong calcs, set to 0 because it crashed otherwise
 		}
 	}
-	return color;	//return the
+	return color;	//return the calculated colour
 }
 
 Vec3Df Trace(unsigned int level, Vec3Df origin, Vec3Df dest, Vec3Df &colour) {
@@ -272,10 +336,10 @@ Vec3Df Trace(unsigned int level, Vec3Df origin, Vec3Df dest, Vec3Df &colour) {
 
 			if (intersectPlane(normal, direction, origin, distance, t, planepos)) {	//test if the ray intersects with a plane
 				Vec3Df trianglepos;
-				Shade(planepos, colour, normal, i, trianglepos);
+				Shade(planepos, colour, normal, i, trianglepos, direction);
 			}
 			else {
-				colour = Vec3Df(0.1, 0.2, 0.3);
+				return Vec3Df(0.1, 0.2, 0.3);
 			}
 		}
 	}
